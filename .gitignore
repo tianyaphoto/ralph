@@ -15,3 +15,6 @@ progress.txt
 # Ralph runtime directories
 .worktrees/
 .ralph-state/
+ralph-config.yaml
+reports/
+!reports/.gitkeep

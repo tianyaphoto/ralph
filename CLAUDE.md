@@ -102,3 +102,15 @@ If there are still stories with `passes: false`, end your response normally (ano
 - Commit frequently
 - Keep CI green
 - Read the Codebase Patterns section in progress.txt before starting
+
+# Autonomous Mode
+
+Ralph can now run in autonomous mode (`--auto` or `--daemon`), where it:
+1. Researches competitors and discovers feature gaps
+2. Auto-generates PRDs from research findings
+3. Runs the development loop (this is what you do)
+4. Reviews and verifies builds
+5. Creates PRs, merges, tags, and releases
+
+When running in autonomous mode, the prd.json you receive was auto-generated.
+Follow the same instructions above — implement the highest-priority story with `passes: false`.

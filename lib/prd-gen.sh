@@ -29,7 +29,7 @@ run_prd_gen() {
   log_info "Phase 2: PRD Generation — starting"
 
   # ── Validate gaps.json exists ─────────────────────────────
-  local gaps_file="${CFG_PROJECT_REPO}/gaps.json"
+  local gaps_file="${RALPH_DIR}/.ralph-state/gaps.json"
   if [[ ! -f "$gaps_file" ]]; then
     log_error "gaps.json not found at ${gaps_file}. Run research phase first."
     return "$EXIT_RECOVERABLE"
@@ -89,11 +89,11 @@ run_prd_gen() {
 
   local output
   if [[ "$RALPH_TOOL" == "claude" ]]; then
-    output="$(echo "$prompt" \
+    output="$(printf '%s\n' "$prompt" \
       | claude --dangerously-skip-permissions --print -p "$work_dir" 2>&1 \
       | tee /dev/stderr)" || true
   else
-    output="$(echo "$prompt" \
+    output="$(printf '%s\n' "$prompt" \
       | amp --dangerously-allow-all 2>&1 \
       | tee /dev/stderr)" || true
   fi

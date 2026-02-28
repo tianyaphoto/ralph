@@ -30,8 +30,9 @@ _run_build() {
     return 0
   fi
 
-  log_info "Running build: $CFG_PROJECT_BUILD_COMMAND"
-  if eval "$CFG_PROJECT_BUILD_COMMAND"; then
+  local work_dir="${CFG_PROJECT_REPO:-.}"
+  log_info "Running build: $CFG_PROJECT_BUILD_COMMAND (in $work_dir)"
+  if (cd "$work_dir" && bash -c "$CFG_PROJECT_BUILD_COMMAND"); then
     log_info "Build passed"
     return 0
   else
@@ -48,8 +49,9 @@ _run_tests() {
     return 0
   fi
 
-  log_info "Running tests: $CFG_PROJECT_TEST_COMMAND"
-  if eval "$CFG_PROJECT_TEST_COMMAND"; then
+  local work_dir="${CFG_PROJECT_REPO:-.}"
+  log_info "Running tests: $CFG_PROJECT_TEST_COMMAND (in $work_dir)"
+  if (cd "$work_dir" && bash -c "$CFG_PROJECT_TEST_COMMAND"); then
     log_info "Tests passed"
     return 0
   else
@@ -66,8 +68,9 @@ _run_lint() {
     return 0
   fi
 
-  log_info "Running lint: $CFG_PROJECT_LINT_COMMAND"
-  if eval "$CFG_PROJECT_LINT_COMMAND"; then
+  local work_dir="${CFG_PROJECT_REPO:-.}"
+  log_info "Running lint: $CFG_PROJECT_LINT_COMMAND (in $work_dir)"
+  if (cd "$work_dir" && bash -c "$CFG_PROJECT_LINT_COMMAND"); then
     log_info "Lint passed"
   else
     log_warn "Lint reported issues (non-blocking)"
@@ -93,9 +96,22 @@ _ask_ai_to_fix() {
     return 1
   fi
 
-  echo "$fix_prompt" | "$tool" --print 2>&1 | while IFS= read -r line; do
-    log_info "[${tool}] $line"
-  done
+  case "$tool" in
+    claude)
+      printf '%s\n' "$fix_prompt" | "$tool" --dangerously-skip-permissions --print 2>&1 | while IFS= read -r line; do
+        log_info "[${tool}] $line"
+      done
+      ;;
+    amp)
+      printf '%s\n' "$fix_prompt" | "$tool" --dangerously-allow-all 2>&1 | while IFS= read -r line; do
+        log_info "[${tool}] $line"
+      done
+      ;;
+    *)
+      log_error "Unknown tool: $tool"
+      return 1
+      ;;
+  esac
 
   return 0
 }
@@ -117,9 +133,22 @@ _run_ai_review() {
     return 1
   fi
 
-  "$tool" --print < "$prompt_file" 2>&1 | while IFS= read -r line; do
-    log_info "[review] $line"
-  done
+  case "$tool" in
+    claude)
+      "$tool" --dangerously-skip-permissions --print < "$prompt_file" 2>&1 | while IFS= read -r line; do
+        log_info "[review] $line"
+      done
+      ;;
+    amp)
+      cat "$prompt_file" | "$tool" --dangerously-allow-all 2>&1 | while IFS= read -r line; do
+        log_info "[review] $line"
+      done
+      ;;
+    *)
+      log_error "Unknown tool: $tool"
+      return 1
+      ;;
+  esac
 
   return 0
 }

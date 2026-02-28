@@ -89,13 +89,29 @@ worktree_squash_merge() {
 
   log_info "Squash-merging ${branch_name} into ${target_branch}"
 
-  # Save current branch to restore later
+  # Save current branch to restore on failure
   local original_branch
   original_branch="$(git rev-parse --abbrev-ref HEAD)"
 
-  git checkout "$target_branch"
-  git merge --squash "$branch_name"
-  git commit -m "$commit_msg"
+  if ! git checkout "$target_branch"; then
+    log_error "Failed to checkout ${target_branch}"
+    git checkout "$original_branch" 2>/dev/null || true
+    return "$EXIT_RECOVERABLE"
+  fi
+
+  if ! git merge --squash "$branch_name"; then
+    log_error "Squash-merge failed for ${branch_name}"
+    git merge --abort 2>/dev/null
+    git checkout "$original_branch" 2>/dev/null || true
+    return "$EXIT_RECOVERABLE"
+  fi
+
+  if ! git commit -m "$commit_msg"; then
+    log_error "Commit failed after squash-merge"
+    git merge --abort 2>/dev/null
+    git checkout "$original_branch" 2>/dev/null || true
+    return "$EXIT_RECOVERABLE"
+  fi
 
   log_info "Squash-merge complete: ${branch_name} -> ${target_branch}"
 

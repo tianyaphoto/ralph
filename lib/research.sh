@@ -184,6 +184,12 @@ run_research() {
   cp "$gaps_file" "$date_dir/gaps.json"
   log_info "Archived: $date_dir/gaps.json"
 
+  # Also copy gaps.json to .ralph-state/ so prd-gen phase can find it
+  local state_dir="${RALPH_DIR}/.ralph-state"
+  mkdir -p "$state_dir"
+  cp "$gaps_file" "$state_dir/gaps.json"
+  log_info "Copied gaps.json to: $state_dir/gaps.json"
+
   if [[ -f "$report_file" ]]; then
     cp "$report_file" "$date_dir/research-report.md"
     log_info "Archived: $date_dir/research-report.md"

@@ -91,6 +91,12 @@ _bump_minor_version() {
   # Strip the leading "v" if present
   local version="${tag#v}"
 
+  # Validate semver format; default to 0.0.0 if invalid
+  if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    log_warn "Invalid semver '${tag}', defaulting to v0.0.0"
+    version="0.0.0"
+  fi
+
   local major minor patch
   IFS='.' read -r major minor patch <<< "$version"
 

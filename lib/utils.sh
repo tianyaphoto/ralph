@@ -154,6 +154,28 @@ check_all_dependencies() {
   return "$missing"
 }
 
+# ── AI tool invocation ──────────────────────────────────────
+# invoke_ai — Run the configured AI tool.
+# Reads prompt from stdin, writes output to stdout.
+# Passes through any extra arguments (e.g. -p dir).
+#
+# Usage:
+#   printf '%s' "$prompt" | invoke_ai
+#   invoke_ai < prompt.md
+#   invoke_ai -p "$work_dir" < prompt.md
+invoke_ai() {
+  local tool="${RALPH_TOOL:-claude}"
+  if ! command -v "$tool" &>/dev/null; then
+    log_error "AI tool not found: $tool"
+    return 1
+  fi
+  case "$tool" in
+    claude) "$tool" --dangerously-skip-permissions --print "$@" ;;
+    amp)    "$tool" --dangerously-allow-all "$@" ;;
+    *)      log_error "Unknown AI tool: $tool"; return 1 ;;
+  esac
+}
+
 # ── Misc helpers ────────────────────────────────────────────
 # Parse interval string like "30m", "1h", "2h30m", or plain seconds.
 # Returns 1 on empty or unrecognized input.

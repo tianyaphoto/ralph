@@ -88,15 +88,9 @@ run_prd_gen() {
   log_info "Running ${RALPH_TOOL} for PRD generation in: ${work_dir}"
 
   local output
-  if [[ "$RALPH_TOOL" == "claude" ]]; then
-    output="$(printf '%s\n' "$prompt" \
-      | claude --dangerously-skip-permissions --print -p "$work_dir" 2>&1 \
-      | tee /dev/stderr)" || true
-  else
-    output="$(printf '%s\n' "$prompt" \
-      | amp --dangerously-allow-all 2>&1 \
-      | tee /dev/stderr)" || true
-  fi
+  output="$(printf '%s\n' "$prompt" \
+    | (cd "$work_dir" && invoke_ai) 2>&1 \
+    | tee /dev/stderr)" || true
 
   # ── Validate prd.json was created ─────────────────────────
   if [[ ! -f "$prd_file" ]]; then

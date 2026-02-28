@@ -32,19 +32,19 @@ _build_competitor_text() {
   local json="${1:-"[]"}"
 
   local count
-  count="$(echo "$json" | jq 'length')"
+  count="$(jq 'length' <<< "$json")"
 
   if [[ "$count" -eq 0 ]]; then
     echo "(No competitors configured.)"
     return 0
   fi
 
-  echo "$json" | jq -r '
+  jq -r '
     .[] |
     "- **" + (.name // "unknown") + "**"
     + (if .github  then "\n  - GitHub: "  + .github  else "" end)
     + (if .website then "\n  - Website: " + .website else "" end)
-  '
+  ' <<< "$json"
 }
 
 # ── _build_dimension_text ─────────────────────────────────────
@@ -54,14 +54,14 @@ _build_dimension_text() {
   local json="${1:-"[]"}"
 
   local count
-  count="$(echo "$json" | jq 'length')"
+  count="$(jq 'length' <<< "$json")"
 
   if [[ "$count" -eq 0 ]]; then
     echo "(No dimensions configured.)"
     return 0
   fi
 
-  echo "$json" | jq -r 'to_entries | .[] | "\(.key + 1). \(.value)"'
+  jq -r 'to_entries | .[] | "\(.key + 1). \(.value)"' <<< "$json"
 }
 
 # ── _render_prompt ────────────────────────────────────────────
@@ -146,21 +146,8 @@ run_research() {
   local ai_exit=0
   log_info "Invoking $RALPH_TOOL for research analysis"
 
-  case "$RALPH_TOOL" in
-    claude)
-      (cd "$work_dir" && claude --dangerously-skip-permissions --print < "$prompt_file") \
-        > "$work_dir/ai-output.log" 2>&1 || ai_exit=$?
-      ;;
-    amp)
-      (cd "$work_dir" && cat "$prompt_file" | amp --dangerously-allow-all) \
-        > "$work_dir/ai-output.log" 2>&1 || ai_exit=$?
-      ;;
-    *)
-      log_error "Unknown RALPH_TOOL: $RALPH_TOOL"
-      rm -rf "$work_dir"
-      return "$EXIT_RECOVERABLE"
-      ;;
-  esac
+  (cd "$work_dir" && invoke_ai < "$prompt_file") \
+    > "$work_dir/ai-output.log" 2>&1 || ai_exit=$?
 
   if [[ "$ai_exit" -ne 0 ]]; then
     log_warn "AI tool exited with code $ai_exit (may still have produced output)"

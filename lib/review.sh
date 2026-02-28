@@ -22,103 +22,58 @@ readonly MAX_REVIEW_RETRIES=3
 
 # ── Internal helpers ──────────────────────────────────────────
 
-# _run_build — Execute the configured build command.
-# Returns 0 on success or when no build command is configured.
-_run_build() {
-  if [[ -z "${CFG_PROJECT_BUILD_COMMAND:-}" ]]; then
-    log_info "No build command configured, skipping build"
+# _run_check — Execute a configured check command.
+# Arguments:
+#   $1 — label (e.g. "build", "tests", "lint")
+#   $2 — command string from config (may be empty → skip)
+#   $3 — "blocking" or "non-blocking" (non-blocking always returns 0)
+# Returns 0 on pass/skip, 1 on blocking failure.
+_run_check() {
+  local label="$1"
+  local cmd="${2:-}"
+  local mode="${3:-blocking}"
+
+  if [[ -z "$cmd" ]]; then
+    log_info "No ${label} command configured, skipping ${label}"
     return 0
   fi
 
   local work_dir="${CFG_PROJECT_REPO:-.}"
-  log_info "Running build: $CFG_PROJECT_BUILD_COMMAND (in $work_dir)"
-  if (cd "$work_dir" && bash -c "$CFG_PROJECT_BUILD_COMMAND"); then
-    log_info "Build passed"
-    return 0
-  else
-    log_error "Build failed"
-    return 1
-  fi
-}
+  log_info "Running ${label}: ${cmd} (in ${work_dir})"
 
-# _run_tests — Execute the configured test command.
-# Returns 0 on success or when no test command is configured.
-_run_tests() {
-  if [[ -z "${CFG_PROJECT_TEST_COMMAND:-}" ]]; then
-    log_info "No test command configured, skipping tests"
+  if (cd "$work_dir" && bash -c "$cmd"); then
+    log_info "${label^} passed"
     return 0
   fi
 
-  local work_dir="${CFG_PROJECT_REPO:-.}"
-  log_info "Running tests: $CFG_PROJECT_TEST_COMMAND (in $work_dir)"
-  if (cd "$work_dir" && bash -c "$CFG_PROJECT_TEST_COMMAND"); then
-    log_info "Tests passed"
-    return 0
-  else
-    log_error "Tests failed"
-    return 1
-  fi
-}
-
-# _run_lint — Execute the configured lint command.
-# Non-blocking: always returns 0.  Logs warnings on failure.
-_run_lint() {
-  if [[ -z "${CFG_PROJECT_LINT_COMMAND:-}" ]]; then
-    log_info "No lint command configured, skipping lint"
+  if [[ "$mode" == "non-blocking" ]]; then
+    log_warn "${label^} reported issues (non-blocking)"
     return 0
   fi
 
-  local work_dir="${CFG_PROJECT_REPO:-.}"
-  log_info "Running lint: $CFG_PROJECT_LINT_COMMAND (in $work_dir)"
-  if (cd "$work_dir" && bash -c "$CFG_PROJECT_LINT_COMMAND"); then
-    log_info "Lint passed"
-  else
-    log_warn "Lint reported issues (non-blocking)"
-  fi
-  return 0
+  log_error "${label^} failed"
+  return 1
 }
 
 # _ask_ai_to_fix — Ask the AI tool to diagnose and fix build/test failures.
 # Arguments: $1 = description of what failed
 _ask_ai_to_fix() {
   local failure_description="$1"
-  local tool="${RALPH_TOOL:-claude}"
 
-  log_info "Asking $tool to fix: $failure_description"
+  log_info "Asking ${RALPH_TOOL:-claude} to fix: $failure_description"
 
   local fix_prompt
   fix_prompt="The following check failed: ${failure_description}. "
   fix_prompt+="Diagnose the root cause and apply a minimal fix. "
   fix_prompt+="Then commit with message: fix: ${failure_description}"
 
-  if ! command -v "$tool" &>/dev/null; then
-    log_error "AI tool not found: $tool"
-    return 1
-  fi
-
-  case "$tool" in
-    claude)
-      printf '%s\n' "$fix_prompt" | "$tool" --dangerously-skip-permissions --print 2>&1 | while IFS= read -r line; do
-        log_info "[${tool}] $line"
-      done
-      ;;
-    amp)
-      printf '%s\n' "$fix_prompt" | "$tool" --dangerously-allow-all 2>&1 | while IFS= read -r line; do
-        log_info "[${tool}] $line"
-      done
-      ;;
-    *)
-      log_error "Unknown tool: $tool"
-      return 1
-      ;;
-  esac
-
-  return 0
+  printf '%s\n' "$fix_prompt" | invoke_ai 2>&1 | while IFS= read -r line; do
+    log_info "[${RALPH_TOOL:-claude}] $line"
+  done
 }
 
 # _run_ai_review — Run AI code review using prompts/review.md.
 _run_ai_review() {
-  local tool="${RALPH_TOOL:-claude}"
   local prompt_file="${RALPH_DIR}/prompts/review.md"
 
   if [[ ! -f "$prompt_file" ]]; then
@@ -128,29 +83,9 @@ _run_ai_review() {
 
   log_info "Running AI code review via $prompt_file"
 
-  if ! command -v "$tool" &>/dev/null; then
-    log_error "AI tool not found: $tool"
-    return 1
-  fi
-
-  case "$tool" in
-    claude)
-      "$tool" --dangerously-skip-permissions --print < "$prompt_file" 2>&1 | while IFS= read -r line; do
-        log_info "[review] $line"
-      done
-      ;;
-    amp)
-      cat "$prompt_file" | "$tool" --dangerously-allow-all 2>&1 | while IFS= read -r line; do
-        log_info "[review] $line"
-      done
-      ;;
-    *)
-      log_error "Unknown tool: $tool"
-      return 1
-      ;;
-  esac
-
-  return 0
+  invoke_ai < "$prompt_file" 2>&1 | while IFS= read -r line; do
+    log_info "[review] $line"
+  done
 }
 
 # _archive_review_report — Move review-report.md to the dated report directory.
@@ -212,23 +147,19 @@ run_review() {
     tests_ok=0
 
     # ── Build ──
-    if _run_build; then
+    if _run_check "build" "${CFG_PROJECT_BUILD_COMMAND:-}" "blocking"; then
       build_ok=1
-    else
-      build_ok=0
     fi
 
     # ── Tests (only if build passed) ──
     if (( build_ok == 1 )); then
-      if _run_tests; then
+      if _run_check "tests" "${CFG_PROJECT_TEST_COMMAND:-}" "blocking"; then
         tests_ok=1
-      else
-        tests_ok=0
       fi
     fi
 
     # ── Lint (non-blocking, run regardless) ──
-    _run_lint
+    _run_check "lint" "${CFG_PROJECT_LINT_COMMAND:-}" "non-blocking"
 
     # ── Evaluate results ──
     if (( build_ok == 1 && tests_ok == 1 )); then

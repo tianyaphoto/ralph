@@ -137,6 +137,7 @@ _check_fn() {
 }
 
 assert "log_info is available"      _check_fn log_info
+assert "invoke_ai is available"    _check_fn invoke_ai
 assert "load_config is available"   _check_fn load_config
 assert "write_report is available"  _check_fn write_report
 assert "worktree_create is available" _check_fn worktree_create

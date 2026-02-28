@@ -15,67 +15,45 @@ load_config() {
     return "$EXIT_FATAL"
   fi
 
+  # Parse YAML once into JSON, then extract all fields with jq
+  local full_json
+  full_json="$(yq -o=json '.' "$config_file")" || {
+    log_error "Failed to parse config file: $config_file"
+    return "$EXIT_FATAL"
+  }
+
+  _cfg() { jq -r "$1" <<< "$full_json"; }
+
   # ── Project ──────────────────────────────────────────────
-  export CFG_PROJECT_NAME
-  CFG_PROJECT_NAME="$(yq '.project.name // "my-app"' "$config_file")"
-
-  export CFG_PROJECT_REPO
-  CFG_PROJECT_REPO="$(yq '.project.repo // "."' "$config_file")"
-
-  export CFG_PROJECT_DESCRIPTION
-  CFG_PROJECT_DESCRIPTION="$(yq '.project.description // ""' "$config_file")"
-
-  export CFG_PROJECT_BUILD_COMMAND
-  CFG_PROJECT_BUILD_COMMAND="$(yq '.project.build_command // ""' "$config_file")"
-
-  export CFG_PROJECT_TEST_COMMAND
-  CFG_PROJECT_TEST_COMMAND="$(yq '.project.test_command // ""' "$config_file")"
-
-  export CFG_PROJECT_LINT_COMMAND
-  CFG_PROJECT_LINT_COMMAND="$(yq '.project.lint_command // ""' "$config_file")"
+  export CFG_PROJECT_NAME;          CFG_PROJECT_NAME="$(_cfg          '.project.name // "my-app"')"
+  export CFG_PROJECT_REPO;          CFG_PROJECT_REPO="$(_cfg          '.project.repo // "."')"
+  export CFG_PROJECT_DESCRIPTION;   CFG_PROJECT_DESCRIPTION="$(_cfg   '.project.description // ""')"
+  export CFG_PROJECT_BUILD_COMMAND; CFG_PROJECT_BUILD_COMMAND="$(_cfg '.project.build_command // ""')"
+  export CFG_PROJECT_TEST_COMMAND;  CFG_PROJECT_TEST_COMMAND="$(_cfg  '.project.test_command // ""')"
+  export CFG_PROJECT_LINT_COMMAND;  CFG_PROJECT_LINT_COMMAND="$(_cfg  '.project.lint_command // ""')"
 
   # ── Research ─────────────────────────────────────────────
-  export CFG_RESEARCH_COMPETITORS
-  CFG_RESEARCH_COMPETITORS="$(yq -o=json '.research.competitors // []' "$config_file")"
-
-  export CFG_RESEARCH_DIMENSIONS
-  CFG_RESEARCH_DIMENSIONS="$(yq -o=json '.research.dimensions // []' "$config_file")"
-
-  export CFG_RESEARCH_AUTO_DISCOVER
-  CFG_RESEARCH_AUTO_DISCOVER="$(yq '.research.auto_discover // true' "$config_file")"
+  export CFG_RESEARCH_COMPETITORS;  CFG_RESEARCH_COMPETITORS="$(_cfg  '.research.competitors // []')"
+  export CFG_RESEARCH_DIMENSIONS;   CFG_RESEARCH_DIMENSIONS="$(_cfg   '.research.dimensions // []')"
+  export CFG_RESEARCH_AUTO_DISCOVER; CFG_RESEARCH_AUTO_DISCOVER="$(_cfg '.research.auto_discover // true')"
 
   # ── Schedule ─────────────────────────────────────────────
-  export CFG_SCHEDULE_INTERVAL
-  CFG_SCHEDULE_INTERVAL="$(yq '.schedule.interval // "30m"' "$config_file")"
-
-  export CFG_SCHEDULE_MAX_STORIES
-  CFG_SCHEDULE_MAX_STORIES="$(yq '.schedule.max_stories_per_cycle // 3' "$config_file")"
+  export CFG_SCHEDULE_INTERVAL;     CFG_SCHEDULE_INTERVAL="$(_cfg     '.schedule.interval // "30m"')"
+  export CFG_SCHEDULE_MAX_STORIES;  CFG_SCHEDULE_MAX_STORIES="$(_cfg  '.schedule.max_stories_per_cycle // 3')"
 
   # ── Development ──────────────────────────────────────────
-  export CFG_DEV_TOOL
-  CFG_DEV_TOOL="$(yq '.development.tool // "claude"' "$config_file")"
-
-  export CFG_DEV_MAX_ITERATIONS
-  CFG_DEV_MAX_ITERATIONS="$(yq '.development.max_iterations // 10' "$config_file")"
-
-  export CFG_DEV_TDD
-  CFG_DEV_TDD="$(yq '.development.tdd // true' "$config_file")"
-
-  export CFG_DEV_WORKTREE
-  CFG_DEV_WORKTREE="$(yq '.development.worktree // false' "$config_file")"
+  export CFG_DEV_TOOL;              CFG_DEV_TOOL="$(_cfg              '.development.tool // "claude"')"
+  export CFG_DEV_MAX_ITERATIONS;    CFG_DEV_MAX_ITERATIONS="$(_cfg    '.development.max_iterations // 10')"
+  export CFG_DEV_TDD;               CFG_DEV_TDD="$(_cfg               '.development.tdd // true')"
+  export CFG_DEV_WORKTREE;          CFG_DEV_WORKTREE="$(_cfg          '.development.worktree // false')"
 
   # ── Release ──────────────────────────────────────────────
-  export CFG_RELEASE_AUTO_PR
-  CFG_RELEASE_AUTO_PR="$(yq '.release.auto_pr // true' "$config_file")"
+  export CFG_RELEASE_AUTO_PR;       CFG_RELEASE_AUTO_PR="$(_cfg       '.release.auto_pr // true')"
+  export CFG_RELEASE_AUTO_MERGE;    CFG_RELEASE_AUTO_MERGE="$(_cfg    '.release.auto_merge // false')"
+  export CFG_RELEASE_AUTO_TAG;      CFG_RELEASE_AUTO_TAG="$(_cfg      '.release.auto_tag // false')"
+  export CFG_RELEASE_AUTO_RELEASE;  CFG_RELEASE_AUTO_RELEASE="$(_cfg  '.release.auto_release // false')"
 
-  export CFG_RELEASE_AUTO_MERGE
-  CFG_RELEASE_AUTO_MERGE="$(yq '.release.auto_merge // false' "$config_file")"
-
-  export CFG_RELEASE_AUTO_TAG
-  CFG_RELEASE_AUTO_TAG="$(yq '.release.auto_tag // false' "$config_file")"
-
-  export CFG_RELEASE_AUTO_RELEASE
-  CFG_RELEASE_AUTO_RELEASE="$(yq '.release.auto_release // false' "$config_file")"
+  unset -f _cfg
 
   # ── Derived: set RALPH_TOOL for the rest of the system ──
   export RALPH_TOOL="$CFG_DEV_TOOL"

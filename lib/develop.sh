@@ -91,11 +91,7 @@ run_develop() {
     log_info "Development iteration $i/$max_iter ($remaining stories remaining)"
 
     local output
-    if [[ "$RALPH_TOOL" == "claude" ]]; then
-      output="$(claude --dangerously-skip-permissions --print < "$prompt_file" 2>&1 | tee /dev/stderr)" || true
-    else
-      output="$(cat "$prompt_file" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr)" || true
-    fi
+    output="$(invoke_ai < "$prompt_file" 2>&1 | tee /dev/stderr)" || true
 
     # Check for completion signal
     if echo "$output" | grep -q "<promise>COMPLETE</promise>"; then

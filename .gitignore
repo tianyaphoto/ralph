@@ -11,3 +11,7 @@ progress.txt
 
 #Claude
 .claude/
+
+# Ralph runtime directories
+.worktrees/
+.ralph-state/

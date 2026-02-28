@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # lib/utils.sh — Common utilities for Ralph autonomous agent
 # Source this file; do not execute directly.
-
-set -euo pipefail
+# NOTE: Do NOT set shell options here — sourced libraries must not
+# alter the caller's shell behaviour.  The entry-point script
+# (ralph.sh) is responsible for `set -euo pipefail`.
 
 # ── Exit codes ──────────────────────────────────────────────
 readonly EXIT_OK=0
@@ -45,41 +46,62 @@ today_stamp() { date '+%Y-%m-%d'; }
 today_dir()   { echo "$REPORTS_BASE/$(today_stamp)"; }
 now_iso()     { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
 
-# ── Process lock ────────────────────────────────────────────
+# ── Process lock (mkdir-based, atomic) ─────────────────────
 acquire_lock() {
   mkdir -p "$STATE_DIR"
-  local lockfile="$STATE_DIR/lock.pid"
-  if [[ -f "$lockfile" ]]; then
+  local lockdir="$STATE_DIR/lock.d"
+
+  if mkdir "$lockdir" 2>/dev/null; then
+    # Lock acquired — record our PID
+    echo $$ > "$lockdir/pid"
+    trap 'release_lock' EXIT
+    return 0
+  fi
+
+  # Lock directory already exists — check for stale lock
+  local pidfile="$lockdir/pid"
+  if [[ -f "$pidfile" ]]; then
     local old_pid
-    old_pid="$(cat "$lockfile")"
+    old_pid="$(cat "$pidfile")"
     if kill -0 "$old_pid" 2>/dev/null; then
       log_error "Another Ralph instance is running (PID $old_pid)"
       return "$EXIT_FATAL"
     else
       log_warn "Stale lock found (PID $old_pid), removing"
-      rm -f "$lockfile"
+      rm -rf "$lockdir"
     fi
+  else
+    # Lock dir exists but no pid file — treat as stale
+    log_warn "Stale lock directory found (no pid file), removing"
+    rm -rf "$lockdir"
   fi
-  echo $$ > "$lockfile"
-  trap 'release_lock' EXIT
+
+  # Retry after removing stale lock
+  if mkdir "$lockdir" 2>/dev/null; then
+    echo $$ > "$lockdir/pid"
+    trap 'release_lock' EXIT
+    return 0
+  fi
+
+  log_error "Failed to acquire lock after removing stale lock"
+  return "$EXIT_FATAL"
 }
 
 release_lock() {
-  rm -f "$STATE_DIR/lock.pid"
+  rm -rf "$STATE_DIR/lock.d"
 }
 
 # ── State management ────────────────────────────────────────
 save_state() {
   local cycle="$1" phase="$2" status="$3"
   mkdir -p "$STATE_DIR"
-  cat > "$STATE_DIR/last-run.json" <<JSONEOF
-{
-  "cycle": $cycle,
-  "phase": "$phase",
-  "timestamp": "$(now_iso)",
-  "status": "$status"
-}
-JSONEOF
+  jq -n \
+    --argjson cycle "$cycle" \
+    --arg phase "$phase" \
+    --arg status "$status" \
+    --arg timestamp "$(now_iso)" \
+    '{"cycle": $cycle, "phase": $phase, "timestamp": $timestamp, "status": $status}' \
+    > "$STATE_DIR/last-run.json"
 }
 
 load_state() {
@@ -96,7 +118,12 @@ increment_cycle_count() {
   local count=0
   [[ -f "$count_file" ]] && count="$(cat "$count_file")"
   count=$((count + 1))
-  echo "$count" > "$count_file"
+
+  local tmpfile
+  tmpfile="$(mktemp "$STATE_DIR/cycle-count.XXXXXX")"
+  echo "$count" > "$tmpfile"
+  mv -f "$tmpfile" "$count_file"
+
   echo "$count"
 }
 
@@ -128,24 +155,40 @@ check_all_dependencies() {
 }
 
 # ── Misc helpers ────────────────────────────────────────────
-# Parse interval string like "30m", "1h", "2h30m", or plain seconds
+# Parse interval string like "30m", "1h", "2h30m", or plain seconds.
+# Returns 1 on empty or unrecognized input.
 parse_interval() {
-  local input="$1"
+  local input="${1:-}"
+
+  if [[ -z "$input" ]]; then
+    log_error "parse_interval: empty input"
+    return 1
+  fi
+
   local seconds=0
+  local matched=0
 
   # Extract hours
   if [[ "$input" =~ ([0-9]+)h ]]; then
     seconds=$((seconds + ${BASH_REMATCH[1]} * 3600))
+    matched=1
   fi
 
   # Extract minutes
   if [[ "$input" =~ ([0-9]+)m ]]; then
     seconds=$((seconds + ${BASH_REMATCH[1]} * 60))
+    matched=1
   fi
 
   # Plain number = treat as seconds
   if [[ "$input" =~ ^[0-9]+$ ]]; then
     seconds=$input
+    matched=1
+  fi
+
+  if (( matched == 0 )); then
+    log_error "parse_interval: unrecognized format '$input'"
+    return 1
   fi
 
   echo "$seconds"

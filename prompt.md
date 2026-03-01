@@ -80,6 +80,12 @@ Only update AGENTS.md if you have **genuinely reusable knowledge** that would he
 - Keep changes focused and minimal
 - Follow existing code patterns
 
+## Project Constraints
+
+{{CONSTRAINTS}}
+
+You MUST follow these constraints when implementing stories. If a constraint conflicts with a story's requirements, prioritize the constraint and note the conflict in your progress report.
+
 ## Browser Testing (Required for Frontend Stories)
 
 For any story that changes UI, you MUST verify it works in the browser:

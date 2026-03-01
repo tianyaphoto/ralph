@@ -72,6 +72,11 @@ run_develop() {
     prompt_file="$RALPH_DIR/prompt.md"
   fi
 
+  # ── Render constraints into prompt ─────────────────────────
+  local rendered_prompt
+  rendered_prompt="$(cat "$prompt_file")"
+  rendered_prompt="${rendered_prompt//\{\{CONSTRAINTS\}\}/${CFG_CONSTRAINTS:-No project constraints defined.}}"
+
   # ── Development iterations ──────────────────────────────
   local max_iter="${CFG_DEV_MAX_ITERATIONS:-10}"
   local completed=0
@@ -91,7 +96,7 @@ run_develop() {
     log_info "Development iteration $i/$max_iter ($remaining stories remaining)"
 
     local output
-    output="$(invoke_ai < "$prompt_file" 2>&1 | tee /dev/stderr)" || true
+    output="$(printf '%s\n' "$rendered_prompt" | invoke_ai 2>&1 | tee /dev/stderr)" || true
 
     # Check for completion signal
     if echo "$output" | grep -q "<promise>COMPLETE</promise>"; then

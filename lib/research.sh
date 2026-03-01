@@ -47,6 +47,29 @@ _build_competitor_text() {
   ' <<< "$json"
 }
 
+# ── _build_requirements_text ──────────────────────────────────
+# Converts a JSON array of user requirements into a
+# human-readable markdown list for prompt injection.
+# Output is written to stdout.
+_build_requirements_text() {
+  local json="${1:-"[]"}"
+
+  local count
+  count="$(jq 'length' <<< "$json")"
+
+  if [[ "$count" -eq 0 ]]; then
+    echo "(No user requirements provided.)"
+    return 0
+  fi
+
+  jq -r '
+    .[] |
+    "- **" + (.title // "untitled") + "** (" + (.priority // "medium") + ")\n"
+    + "  " + (.description // "")
+    + (if .context then "\n  Context: " + .context else "" end)
+  ' <<< "$json"
+}
+
 # ── _build_dimension_text ─────────────────────────────────────
 # Converts the CFG_RESEARCH_DIMENSIONS JSON array into a
 # numbered markdown list.  Output is written to stdout.

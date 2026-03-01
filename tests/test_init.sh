@@ -87,6 +87,14 @@ echo "Existing content here." >> "$TARGET2/CLAUDE.md"
 grep -qF "My Project" "$TARGET2/CLAUDE.md" && pass "existing content preserved" || fail "existing content preserved"
 grep -qF "Ralph Agent" "$TARGET2/CLAUDE.md" && pass "ralph section appended" || fail "ralph section appended"
 
+# Test 11: --tool value written to config
+echo "Test 11: --tool written to config"
+TARGET3="$TEST_TMPDIR/test-project-3"
+mkdir -p "$TARGET3"
+git -C "$TARGET3" init --quiet
+"$RALPH_DIR/ralph.sh" init "$TARGET3" --name test-app-3 --tool amp
+grep -qF "tool: amp" "$TARGET3/.ralph/ralph-config.yaml" && pass "--tool amp in config" || fail "--tool amp in config"
+
 echo ""
 echo "=== Results: $TESTS_PASSED passed, $TESTS_FAILED failed ==="
 [[ "$TESTS_FAILED" -eq 0 ]]

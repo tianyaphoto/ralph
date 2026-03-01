@@ -90,8 +90,9 @@ run_init() {
   sed "s|my-app|$project_name|g" "$RALPH_DIR/config/ralph-config.yaml.example" \
     > "$ralph_dest/config/ralph-config.yaml.example"
 
-  # Generate a starter ralph-config.yaml with project name filled in
-  sed "s|my-app|$project_name|g" "$RALPH_DIR/config/ralph-config.yaml.example" \
+  # Generate a starter ralph-config.yaml with project name and tool filled in
+  sed -e "s|my-app|$project_name|g" -e "s|tool: claude|tool: $tool|g" \
+    "$RALPH_DIR/config/ralph-config.yaml.example" \
     > "$ralph_dest/ralph-config.yaml"
 
   echo "  Copied runtime files to .ralph/"

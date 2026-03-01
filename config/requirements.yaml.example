@@ -1,0 +1,29 @@
+# requirements.yaml — User-specified feature requirements for Ralph
+#
+# Place this file in your project root (alongside ralph-config.yaml).
+# Each entry represents a feature you want built.
+# These are prioritized ABOVE competitive research findings.
+#
+# Fields:
+#   title       (required) — Short name for the requirement
+#   description (required) — What you want built
+#   priority    (required) — high, medium, or low
+#   context     (optional) — Additional rationale or background
+#
+# Example:
+
+- title: "Dark mode support"
+  description: "Add a dark mode theme toggle to the UI"
+  priority: high
+  context: |
+    Multiple users have requested this feature.
+    Our main competitors already support it.
+
+- title: "Offline sync"
+  description: "App should work offline and sync when reconnected"
+  priority: medium
+
+- title: "Improved search"
+  description: "Full-text search across all content with filters"
+  priority: low
+  context: "Current search only matches titles"

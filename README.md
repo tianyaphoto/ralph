@@ -290,7 +290,7 @@ Then edit it to match your project. A typical `constraints.md` looks like:
 - Do not write CSS-in-JS — use Tailwind utility classes only
 ```
 
-This file is entirely optional — Ralph works fine without it. When present, constraints are automatically picked up by the research, PRD generation, and development phases.
+This file is entirely optional — Ralph works fine without it. When present, constraints are automatically picked up by the PRD generation and development phases.
 
 ## Skills (PRD Workflow)
 

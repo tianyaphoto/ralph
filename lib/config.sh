@@ -75,8 +75,16 @@ load_constraints() {
   local constraints_file="$repo/constraints.md"
 
   if [[ -f "$constraints_file" ]]; then
+    local max_size=32768  # 32 KB — generous for a constraints doc
+    local file_size
+    file_size="$(wc -c < "$constraints_file")"
     export CFG_CONSTRAINTS
-    CFG_CONSTRAINTS="$(cat "$constraints_file")"
+    if [[ "$file_size" -gt "$max_size" ]]; then
+      log_warn "constraints.md exceeds ${max_size} bytes (${file_size}); truncating"
+      CFG_CONSTRAINTS="$(head -c "$max_size" "$constraints_file")"
+    else
+      CFG_CONSTRAINTS="$(cat "$constraints_file")"
+    fi
     log_info "Constraints loaded from: $constraints_file"
   else
     export CFG_CONSTRAINTS=""

@@ -212,6 +212,7 @@ result_no_constraints="$(bash -c "
   echo \"\$CFG_CONSTRAINTS\"
 " 2>/dev/null)"
 assert_eq "load_constraints with no file returns empty" "" "$result_no_constraints"
+rm -rf /tmp/ralph-test-no-constraints
 
 # Test: load_constraints with file returns contents
 _test_constraints_dir="$(mktemp -d)"

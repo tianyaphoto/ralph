@@ -16,5 +16,6 @@ progress.txt
 .worktrees/
 .ralph-state/
 ralph-config.yaml
+constraints.md
 reports/
 !reports/.gitkeep

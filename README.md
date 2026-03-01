@@ -36,10 +36,10 @@ Install Ralph into an existing project as `.ralph/`:
 
 ```bash
 # From a cloned copy of Ralph (or wherever ralph.sh lives)
-./ralph.sh --init /path/to/my-project
+./ralph.sh init /path/to/my-project
 
 # Or from the target project directory
-/path/to/ralph/ralph.sh --init .
+/path/to/ralph/ralph.sh init .
 ```
 
 This creates:
@@ -135,7 +135,7 @@ Modes:
   --daemon            Continuous mode (runs cycles on an interval)
   --legacy            Original dev-only loop (backwards compat)
   --phase PHASE       Run a single phase (research|prd-gen|develop|review|release)
-  --init [DIR]        Install Ralph as .ralph/ subdirectory in DIR (default: current dir)
+  init <dir>          Initialize Ralph in a target project
 
 Options:
   --tool amp|claude   Override AI tool (default: from config)
@@ -273,7 +273,7 @@ ralph/
   prompt.md                     # Amp prompt template
 ```
 
-### Subdirectory layout (after `--init`)
+### Subdirectory layout (after `init`)
 
 ```
 my-project/                     # $PROJECT_ROOT
@@ -476,7 +476,7 @@ When all stories have `passes: true`, Ralph outputs `<promise>COMPLETE</promise>
 bash tests/smoke-test.sh
 ```
 
-Runs 36 checks: syntax validation, module loading, function availability, utility tests, config validation, and CLI tests.
+Runs 53 checks: syntax validation, module loading, function availability, utility tests, resolve_project_root tests, config validation, constraints loading, CLI tests, and init integration tests.
 
 ## Debugging
 

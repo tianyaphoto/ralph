@@ -152,6 +152,63 @@ rm -rf "$_test_dir" "$_test_dir2"
 
 echo ""
 
+# ── _render_prompt: {{REQUIREMENTS}} substitution ─────────────
+
+echo "3. _render_prompt includes requirements"
+echo "---"
+
+# Set up a temp environment with all needed files
+_test_dir3="$(mktemp -d)"
+mkdir -p "$_test_dir3/prompts"
+cat > "$_test_dir3/prompts/research.md" <<'MD'
+# Test Prompt
+Project: {{PROJECT_NAME}}
+Requirements: {{REQUIREMENTS}}
+Competitors: {{COMPETITORS}}
+Dimensions: {{DIMENSIONS}}
+Auto: {{AUTO_DISCOVER}}
+Description: {{PROJECT_DESC}}
+MD
+
+cat > "$_test_dir3/ralph-config.yaml" <<'YAML'
+project:
+  name: test-app
+  description: "Test app"
+research:
+  competitors: []
+  dimensions: []
+  auto_discover: false
+YAML
+
+cat > "$_test_dir3/requirements.yaml" <<'YAML'
+- title: "My Feature"
+  description: "Build my feature"
+  priority: high
+YAML
+
+# Symlink lib/ so sourcing works in subshell
+ln -s "$RALPH_DIR/lib" "$_test_dir3/lib"
+
+result3="$(
+  bash -c "
+    export RALPH_DIR='$_test_dir3'
+    export CONFIG_FILE='$_test_dir3/ralph-config.yaml'
+    source '$_test_dir3/lib/utils.sh'
+    source '$_test_dir3/lib/config.sh'
+    source '$_test_dir3/lib/report.sh'
+    source '$_test_dir3/lib/research.sh'
+    load_config >/dev/null 2>&1
+    RESEARCH_PROMPT_TEMPLATE='$_test_dir3/prompts/research.md'
+    _render_prompt 2>/dev/null
+  "
+)"
+assert_contains "rendered prompt contains requirement title" "My Feature" "$result3"
+assert_contains "rendered prompt contains project name" "test-app" "$result3"
+
+rm -rf "$_test_dir3"
+
+echo ""
+
 # ── Summary ────────────────────────────────────────────────────
 echo "====================="
 TOTAL=$((PASS + FAIL))

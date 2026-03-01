@@ -106,6 +106,9 @@ _render_prompt() {
   local dimension_text
   dimension_text="$(_build_dimension_text "$CFG_RESEARCH_DIMENSIONS")"
 
+  local requirements_text
+  requirements_text="$(_build_requirements_text "${CFG_USER_REQUIREMENTS:-[]}")"
+
   # Perform substitutions using simple parameter expansion.
   # Each placeholder is replaced exactly once — order does not matter.
   local rendered="$template"
@@ -114,6 +117,7 @@ _render_prompt() {
   rendered="${rendered//\{\{COMPETITORS\}\}/${competitor_text}}"
   rendered="${rendered//\{\{DIMENSIONS\}\}/${dimension_text}}"
   rendered="${rendered//\{\{AUTO_DISCOVER\}\}/${CFG_RESEARCH_AUTO_DISCOVER}}"
+  rendered="${rendered//\{\{REQUIREMENTS\}\}/${requirements_text}}"
 
   printf '%s\n' "$rendered"
 }

@@ -139,6 +139,7 @@ _check_fn() {
 assert "log_info is available"      _check_fn log_info
 assert "invoke_ai is available"    _check_fn invoke_ai
 assert "load_config is available"   _check_fn load_config
+assert "load_constraints is available" _check_fn load_constraints
 assert "write_report is available"  _check_fn write_report
 assert "worktree_create is available" _check_fn worktree_create
 assert "run_research is available"  _check_fn run_research
@@ -193,6 +194,39 @@ echo "---"
 
 assert "config/ralph-config.yaml.example is valid YAML" \
   yq '.' "$RALPH_DIR/config/ralph-config.yaml.example"
+
+echo ""
+
+# ── 5b. Constraints loading ──────────────────────────────────
+echo "5b. Constraints loading"
+echo "---"
+
+# Test: load_constraints with no file returns empty CFG_CONSTRAINTS
+result_no_constraints="$(bash -c "
+  export RALPH_DIR='$RALPH_DIR'
+  source '$RALPH_DIR/lib/utils.sh'
+  source '$RALPH_DIR/lib/config.sh'
+  export CFG_PROJECT_REPO='/tmp/ralph-test-no-constraints'
+  mkdir -p /tmp/ralph-test-no-constraints
+  load_constraints
+  echo \"\$CFG_CONSTRAINTS\"
+" 2>/dev/null)"
+assert_eq "load_constraints with no file returns empty" "" "$result_no_constraints"
+rm -rf /tmp/ralph-test-no-constraints
+
+# Test: load_constraints with file returns contents
+_test_constraints_dir="$(mktemp -d)"
+echo "# Test Constraints" > "$_test_constraints_dir/constraints.md"
+result_with_constraints="$(bash -c "
+  export RALPH_DIR='$RALPH_DIR'
+  source '$RALPH_DIR/lib/utils.sh'
+  source '$RALPH_DIR/lib/config.sh'
+  export CFG_PROJECT_REPO='$_test_constraints_dir'
+  load_constraints
+  echo \"\$CFG_CONSTRAINTS\"
+" 2>/dev/null)"
+assert_eq "load_constraints with file returns contents" "# Test Constraints" "$result_with_constraints"
+rm -rf "$_test_constraints_dir"
 
 echo ""
 

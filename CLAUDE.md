@@ -77,6 +77,12 @@ Only update CLAUDE.md if you have **genuinely reusable knowledge** that would he
 - Keep changes focused and minimal
 - Follow existing code patterns
 
+## Project Constraints
+
+{{CONSTRAINTS}}
+
+You MUST follow these constraints when implementing stories. If a constraint conflicts with a story's requirements, prioritize the constraint and note the conflict in your progress report.
+
 ## Browser Testing (If Available)
 
 For any story that changes UI, verify it works in the browser if you have browser testing tools configured (e.g., via MCP):

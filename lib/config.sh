@@ -58,6 +58,38 @@ load_config() {
   # ── Derived: set RALPH_TOOL for the rest of the system ──
   export RALPH_TOOL="$CFG_DEV_TOOL"
 
+  # ── Load project constraints ────────────────────────────────
+  load_constraints
+
   log_info "Config loaded: project=$CFG_PROJECT_NAME tool=$RALPH_TOOL"
+  return 0
+}
+
+# ── Constraints loader ──────────────────────────────────────
+# Reads {PROJECT_REPO}/constraints.md if it exists and exports
+# CFG_CONSTRAINTS with the file contents.  Returns empty string
+# if the file does not exist.  Safe to call before or after
+# load_config — uses CFG_PROJECT_REPO if set, falls back to ".".
+load_constraints() {
+  local repo="${CFG_PROJECT_REPO:-.}"
+  local constraints_file="$repo/constraints.md"
+
+  if [[ -f "$constraints_file" ]]; then
+    local max_size=32768  # 32 KB — generous for a constraints doc
+    local file_size
+    file_size="$(wc -c < "$constraints_file")"
+    export CFG_CONSTRAINTS
+    if [[ "$file_size" -gt "$max_size" ]]; then
+      log_warn "constraints.md exceeds ${max_size} bytes (${file_size}); truncating"
+      CFG_CONSTRAINTS="$(head -c "$max_size" "$constraints_file")"
+    else
+      CFG_CONSTRAINTS="$(cat "$constraints_file")"
+    fi
+    log_info "Constraints loaded from: $constraints_file"
+  else
+    export CFG_CONSTRAINTS=""
+    log_info "No constraints file found at: $constraints_file (proceeding without constraints)"
+  fi
+
   return 0
 }

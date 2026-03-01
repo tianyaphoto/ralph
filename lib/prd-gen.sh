@@ -70,6 +70,7 @@ run_prd_gen() {
   prompt="${prompt//\{\{MAX_STORIES\}\}/${CFG_SCHEDULE_MAX_STORIES}}"
   prompt="${prompt//\{\{GAPS_JSON\}\}/${gaps_text}}"
   prompt="${prompt//\{\{TODAY\}\}/${today}}"
+  prompt="${prompt//\{\{CONSTRAINTS\}\}/${CFG_CONSTRAINTS:-No project constraints defined.}}"
 
   # ── Archive existing prd.json if present ──────────────────
   local prd_file="${RALPH_DIR}/prd.json"

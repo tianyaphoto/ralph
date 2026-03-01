@@ -1,0 +1,24 @@
+# Project Constraints
+
+These constraints are injected into Ralph's PRD generation and development prompts.
+The AI agent will respect these rules when proposing and implementing features.
+
+## Tech Stack
+
+- Frontend: React 18 + Tailwind CSS
+- Backend: Node.js with Express
+- Database: PostgreSQL
+- Language: TypeScript (strict mode)
+
+## Coding Rules
+
+- Use functional components only, no class components
+- No ORMs — use raw SQL with parameterized queries
+- All API routes must validate input with zod schemas
+- Use server actions for mutations, not API routes
+
+## Forbidden
+
+- Do not introduce new dependencies without justification
+- Do not use jQuery, Lodash, or Moment.js
+- Do not write CSS-in-JS — use Tailwind utility classes only

@@ -263,6 +263,35 @@ ralph/
 | | `auto_tag` | `false` | Auto-create semantic version tags |
 | | `auto_release` | `false` | Auto-create GitHub Releases |
 
+## Project Constraints
+
+You can optionally create a `constraints.md` file in your project root (alongside `ralph-config.yaml`) to define project-level restrictions. Ralph injects these constraints into both PRD generation and development prompts, so the AI agent respects your tech stack, coding conventions, and forbidden patterns.
+
+Copy the example to get started:
+
+```bash
+cp constraints.md.example constraints.md
+```
+
+Then edit it to match your project. A typical `constraints.md` looks like:
+
+```markdown
+## Tech Stack
+- Frontend: React 18 + Tailwind CSS
+- Backend: Node.js with Express
+- Language: TypeScript (strict mode)
+
+## Coding Rules
+- Use functional components only, no class components
+- All API routes must validate input with zod schemas
+
+## Forbidden
+- Do not introduce jQuery, Lodash, or Moment.js
+- Do not write CSS-in-JS — use Tailwind utility classes only
+```
+
+This file is entirely optional — Ralph works fine without it. When present, constraints are automatically picked up by the PRD generation and development phases.
+
 ## Skills (PRD Workflow)
 
 Ralph includes skills for generating PRDs interactively — useful when you want to manually define what to build rather than relying on autonomous research.

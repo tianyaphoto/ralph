@@ -209,6 +209,90 @@ rm -rf "$_test_dir3"
 
 echo ""
 
+# ── Config: malformed and non-array requirements.yaml ──────────
+
+echo "4. Config: error recovery and validation"
+echo "---"
+
+# Malformed YAML should default to []
+_test_dir4="$(mktemp -d)"
+cat > "$_test_dir4/requirements.yaml" <<'YAML'
+this is: [not: valid: yaml: {{{
+YAML
+
+cat > "$_test_dir4/ralph-config.yaml" <<'YAML'
+project:
+  name: test-project
+  description: "Test"
+research:
+  competitors: []
+  dimensions: []
+YAML
+ln -s "$RALPH_DIR/lib" "$_test_dir4/lib"
+
+result4="$(
+  bash -c "
+    export RALPH_DIR='$_test_dir4'
+    export CONFIG_FILE='$_test_dir4/ralph-config.yaml'
+    source '$_test_dir4/lib/utils.sh'
+    source '$_test_dir4/lib/config.sh'
+    load_config >/dev/null 2>&1
+    echo \"\$CFG_USER_REQUIREMENTS\"
+  "
+)"
+assert_eq "malformed YAML defaults to []" "[]" "$result4"
+
+# Non-array YAML (object instead of list) should default to []
+_test_dir5="$(mktemp -d)"
+cat > "$_test_dir5/requirements.yaml" <<'YAML'
+title: "Not an array"
+description: "This is a mapping, not a list"
+priority: high
+YAML
+
+cat > "$_test_dir5/ralph-config.yaml" <<'YAML'
+project:
+  name: test-project
+  description: "Test"
+research:
+  competitors: []
+  dimensions: []
+YAML
+ln -s "$RALPH_DIR/lib" "$_test_dir5/lib"
+
+result5="$(
+  bash -c "
+    export RALPH_DIR='$_test_dir5'
+    export CONFIG_FILE='$_test_dir5/ralph-config.yaml'
+    source '$_test_dir5/lib/utils.sh'
+    source '$_test_dir5/lib/config.sh'
+    load_config >/dev/null 2>&1
+    echo \"\$CFG_USER_REQUIREMENTS\"
+  "
+)"
+assert_eq "non-array YAML defaults to []" "[]" "$result5"
+
+rm -rf "$_test_dir4" "$_test_dir5"
+
+echo ""
+
+# ── _build_requirements_text: missing required fields ──────────
+
+echo "5. _build_requirements_text: missing fields warning"
+echo "---"
+
+# Item missing title — should still produce output (with fallback)
+json_missing='[{"description":"no title here","priority":"low"}]'
+result_missing="$(_build_requirements_text "$json_missing" 2>/dev/null)"
+assert_contains "missing title uses fallback" "**untitled**" "$result_missing"
+
+# Item missing priority — should use default "medium"
+json_no_pri='[{"title":"NoPri","description":"no priority"}]'
+result_no_pri="$(_build_requirements_text "$json_no_pri" 2>/dev/null)"
+assert_contains "missing priority uses medium" "medium" "$result_no_pri"
+
+echo ""
+
 # ── Summary ────────────────────────────────────────────────────
 echo "====================="
 TOTAL=$((PASS + FAIL))

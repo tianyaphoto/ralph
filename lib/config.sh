@@ -45,6 +45,11 @@ load_config() {
       log_warn "Failed to parse requirements.yaml — defaulting to empty"
       CFG_USER_REQUIREMENTS="[]"
     }
+    # Validate that requirements is a JSON array
+    if ! jq -e 'type == "array"' <<< "$CFG_USER_REQUIREMENTS" >/dev/null 2>&1; then
+      log_warn "requirements.yaml must be a YAML array (list). Got $(jq -r 'type' <<< "$CFG_USER_REQUIREMENTS"). Defaulting to empty."
+      CFG_USER_REQUIREMENTS="[]"
+    fi
     log_info "User requirements loaded: $(jq 'length' <<< "$CFG_USER_REQUIREMENTS") item(s)"
   else
     export CFG_USER_REQUIREMENTS="[]"

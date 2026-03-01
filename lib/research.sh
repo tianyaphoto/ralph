@@ -62,11 +62,18 @@ _build_requirements_text() {
     return 0
   fi
 
+  # Warn about items missing required fields
+  local invalid
+  invalid="$(jq '[.[] | select(.title == null or .description == null or .priority == null)] | length' <<< "$json")"
+  if [[ "$invalid" -gt 0 ]]; then
+    log_warn "$invalid requirement(s) missing required fields (title, description, priority)" >&2
+  fi
+
   jq -r '
     .[] |
     "- **" + (.title // "untitled") + "** (" + (.priority // "medium") + ")\n"
     + "  " + (.description // "")
-    + (if .context then "\n  Context: " + .context else "" end)
+    + (if .context then "\n  Context: " + (.context | gsub("\n"; "\n  ")) else "" end)
   ' <<< "$json"
 }
 
@@ -141,6 +148,14 @@ _validate_gaps_json() {
   local item_count
   item_count="$(jq 'length' "$filepath")"
   log_info "gaps.json validated: $item_count gap(s) found"
+
+  # Warn if any entries are missing the source field
+  local missing_source
+  missing_source="$(jq '[.[] | select(.source == null)] | length' "$filepath")"
+  if [[ "$missing_source" -gt 0 ]]; then
+    log_warn "gaps.json: $missing_source entry/entries missing 'source' field"
+  fi
+
   return 0
 }
 

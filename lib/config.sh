@@ -37,6 +37,19 @@ load_config() {
   export CFG_RESEARCH_DIMENSIONS;   CFG_RESEARCH_DIMENSIONS="$(_cfg   '.research.dimensions // []')"
   export CFG_RESEARCH_AUTO_DISCOVER; CFG_RESEARCH_AUTO_DISCOVER="$(_cfg '.research.auto_discover // true')"
 
+  # ── User Requirements (separate file) ───────────────────────
+  local req_file="${RALPH_DIR}/requirements.yaml"
+  if [[ -f "$req_file" ]]; then
+    export CFG_USER_REQUIREMENTS
+    CFG_USER_REQUIREMENTS="$(yq -o=json '.' "$req_file")" || {
+      log_warn "Failed to parse requirements.yaml — defaulting to empty"
+      CFG_USER_REQUIREMENTS="[]"
+    }
+    log_info "User requirements loaded: $(jq 'length' <<< "$CFG_USER_REQUIREMENTS") item(s)"
+  else
+    export CFG_USER_REQUIREMENTS="[]"
+  fi
+
   # ── Schedule ─────────────────────────────────────────────
   export CFG_SCHEDULE_INTERVAL;     CFG_SCHEDULE_INTERVAL="$(_cfg     '.schedule.interval // "30m"')"
   export CFG_SCHEDULE_MAX_STORIES;  CFG_SCHEDULE_MAX_STORIES="$(_cfg  '.schedule.max_stories_per_cycle // 3')"

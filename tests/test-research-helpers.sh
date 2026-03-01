@@ -84,6 +84,74 @@ assert_eq "no args returns placeholder" \
 
 echo ""
 
+# ── Config loading: requirements.yaml ──────────────────────────
+
+echo "2. Config: requirements.yaml loading"
+echo "---"
+
+# Create a temp dir with a requirements.yaml
+_test_dir="$(mktemp -d)"
+cat > "$_test_dir/requirements.yaml" <<'YAML'
+- title: "Test feature"
+  description: "A test requirement"
+  priority: high
+  context: "Testing context"
+YAML
+
+# Also need a minimal ralph-config.yaml for load_config
+cat > "$_test_dir/ralph-config.yaml" <<'YAML'
+project:
+  name: test-project
+  description: "Test"
+research:
+  competitors: []
+  dimensions: []
+YAML
+
+# Symlink lib/ into temp dir so RALPH_DIR can point there
+ln -s "$RALPH_DIR/lib" "$_test_dir/lib"
+
+# Load config from temp dir
+result="$(
+  bash -c "
+    export RALPH_DIR='$_test_dir'
+    export CONFIG_FILE='$_test_dir/ralph-config.yaml'
+    source '$_test_dir/lib/utils.sh'
+    source '$_test_dir/lib/config.sh'
+    load_config >/dev/null 2>&1
+    echo \"\$CFG_USER_REQUIREMENTS\"
+  "
+)"
+assert_contains "requirements loaded from YAML" "Test feature" "$result"
+
+# Without requirements.yaml — should default to []
+_test_dir2="$(mktemp -d)"
+cat > "$_test_dir2/ralph-config.yaml" <<'YAML'
+project:
+  name: test-project
+  description: "Test"
+research:
+  competitors: []
+  dimensions: []
+YAML
+ln -s "$RALPH_DIR/lib" "$_test_dir2/lib"
+
+result2="$(
+  bash -c "
+    export RALPH_DIR='$_test_dir2'
+    export CONFIG_FILE='$_test_dir2/ralph-config.yaml'
+    source '$_test_dir2/lib/utils.sh'
+    source '$_test_dir2/lib/config.sh'
+    load_config >/dev/null 2>&1
+    echo \"\$CFG_USER_REQUIREMENTS\"
+  "
+)"
+assert_eq "missing requirements.yaml defaults to []" "[]" "$result2"
+
+rm -rf "$_test_dir" "$_test_dir2"
+
+echo ""
+
 # ── Summary ────────────────────────────────────────────────────
 echo "====================="
 TOTAL=$((PASS + FAIL))

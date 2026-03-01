@@ -24,7 +24,7 @@ fi
 #
 # Usage: _get_pr_title
 _get_pr_title() {
-  local prd_file="${RALPH_DIR}/prd.json"
+  local prd_file="${PROJECT_ROOT}/prd.json"
   local title=""
 
   if [[ -f "$prd_file" ]]; then
@@ -32,7 +32,7 @@ _get_pr_title() {
   fi
 
   if [[ -z "$title" ]]; then
-    title="$(git rev-parse --abbrev-ref HEAD)"
+    title="$(project_git rev-parse --abbrev-ref HEAD)"
   fi
 
   echo "$title"
@@ -47,7 +47,7 @@ _get_pr_body() {
   local base_branch="${1:-main}"
 
   local commit_log
-  commit_log="$(git log --oneline "${base_branch}..HEAD" 2>/dev/null || echo "(no commits)")"
+  commit_log="$(project_git log --oneline "${base_branch}..HEAD" 2>/dev/null || echo "(no commits)")"
 
   local report_dir
   report_dir="$(today_dir)"
@@ -72,9 +72,9 @@ _get_pr_body() {
 #
 # Usage: _detect_base_branch
 _detect_base_branch() {
-  if git show-ref --verify --quiet refs/heads/main 2>/dev/null; then
+  if project_git show-ref --verify --quiet refs/heads/main 2>/dev/null; then
     echo "main"
-  elif git show-ref --verify --quiet refs/heads/master 2>/dev/null; then
+  elif project_git show-ref --verify --quiet refs/heads/master 2>/dev/null; then
     echo "master"
   else
     echo "main"
@@ -122,7 +122,7 @@ run_release() {
 
   # ── Step 1: Check current branch ──────────────────────────
   local current_branch
-  current_branch="$(git rev-parse --abbrev-ref HEAD)"
+  current_branch="$(project_git rev-parse --abbrev-ref HEAD)"
 
   local base_branch
   base_branch="$(_detect_base_branch)"
@@ -145,7 +145,7 @@ run_release() {
 
   # ── Step 2: Push branch to origin ─────────────────────────
   log_info "Pushing branch ${current_branch} to origin"
-  if ! git push -u origin "$current_branch" 2>&1; then
+  if ! project_git push -u origin "$current_branch" 2>&1; then
     log_error "Failed to push branch ${current_branch}"
     overall_status="failed"
     _write_release_summary "$current_branch" "$pr_url" "$ci_status" \
@@ -165,7 +165,7 @@ run_release() {
 
     # Check if a PR already exists for this branch
     local existing_pr
-    existing_pr="$(gh pr view "$current_branch" --json number,url 2>/dev/null || true)"
+    existing_pr="$(in_project_dir gh pr view "$current_branch" --json number,url 2>/dev/null || true)"
 
     if [[ -n "$existing_pr" ]]; then
       pr_number="$(echo "$existing_pr" | jq -r '.number')"
@@ -173,7 +173,7 @@ run_release() {
       log_info "PR already exists: #${pr_number} (${pr_url})"
     else
       local pr_output
-      if pr_output="$(gh pr create \
+      if pr_output="$(in_project_dir gh pr create \
           --title "$pr_title" \
           --body "$pr_body" \
           --base "$base_branch" 2>&1)"; then
@@ -194,7 +194,7 @@ run_release() {
   # ── Step 4: Wait for CI ───────────────────────────────────
   if [[ -n "$pr_url" ]]; then
     log_info "Checking CI status for PR #${pr_number}"
-    if gh pr checks "$current_branch" --watch 2>&1; then
+    if in_project_dir gh pr checks "$current_branch" --watch 2>&1; then
       ci_status="passed"
       log_info "CI checks passed"
     else
@@ -206,14 +206,14 @@ run_release() {
   # ── Step 5: Auto-merge ────────────────────────────────────
   if [[ "${CFG_RELEASE_AUTO_MERGE:-false}" == "true" && -n "$pr_url" ]]; then
     log_info "Auto-merging PR #${pr_number}"
-    if gh pr merge --squash --delete-branch 2>&1; then
+    if in_project_dir gh pr merge --squash --delete-branch 2>&1; then
       merge_status="merged"
       log_info "PR #${pr_number} merged successfully"
 
       # Checkout base branch and pull latest
       log_info "Checking out ${base_branch} and pulling latest"
-      git checkout "$base_branch"
-      git pull origin "$base_branch"
+      project_git checkout "$base_branch"
+      project_git pull origin "$base_branch"
     else
       merge_status="failed"
       log_error "Failed to merge PR #${pr_number}"
@@ -229,16 +229,16 @@ run_release() {
     log_info "Creating semantic version tag"
 
     local latest_tag
-    latest_tag="$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")"
+    latest_tag="$(project_git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")"
     log_info "Latest tag: ${latest_tag}"
 
     new_tag="$(_bump_minor_version "$latest_tag")"
     log_info "New tag: ${new_tag}"
 
-    if git tag -a "$new_tag" -m "Release ${new_tag}" 2>&1; then
+    if project_git tag -a "$new_tag" -m "Release ${new_tag}" 2>&1; then
       log_info "Tag ${new_tag} created"
 
-      if git push origin "$new_tag" 2>&1; then
+      if project_git push origin "$new_tag" 2>&1; then
         log_info "Tag ${new_tag} pushed to origin"
       else
         log_error "Failed to push tag ${new_tag}"
@@ -255,7 +255,7 @@ run_release() {
   if [[ "${CFG_RELEASE_AUTO_RELEASE:-false}" == "true" && -n "$new_tag" ]]; then
     log_info "Creating GitHub Release for ${new_tag}"
     local release_output
-    if release_output="$(gh release create "$new_tag" \
+    if release_output="$(in_project_dir gh release create "$new_tag" \
         --generate-notes \
         --title "$new_tag" 2>&1)"; then
       release_url="$release_output"

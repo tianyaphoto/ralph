@@ -30,13 +30,13 @@ worktree_create() {
   mkdir -p "$WORKTREE_BASE"
 
   # Delete the branch if it already exists (leftover from a previous run)
-  if git show-ref --verify --quiet "refs/heads/${branch_name}" 2>/dev/null; then
+  if project_git show-ref --verify --quiet "refs/heads/${branch_name}" 2>/dev/null; then
     log_warn "Leftover branch ${branch_name} found, deleting"
-    git branch -D "$branch_name" 2>/dev/null || true
+    project_git branch -D "$branch_name" 2>/dev/null || true
   fi
 
   log_info "Creating worktree at ${worktree_path} (branch: ${branch_name}, base: ${base_branch})"
-  git worktree add -b "$branch_name" "$worktree_path" "$base_branch"
+  project_git worktree add -b "$branch_name" "$worktree_path" "$base_branch"
 
   log_info "Worktree created: ${worktree_path}"
   echo "$worktree_path"
@@ -53,21 +53,21 @@ worktree_remove() {
 
   if [[ -d "$worktree_path" ]]; then
     log_info "Removing worktree at ${worktree_path}"
-    git worktree remove --force "$worktree_path" 2>/dev/null || {
+    project_git worktree remove --force "$worktree_path" 2>/dev/null || {
       log_warn "git worktree remove failed, falling back to manual cleanup"
       rm -rf "$worktree_path"
-      git worktree prune
+      project_git worktree prune
     }
   else
     log_warn "Worktree directory not found: ${worktree_path}"
     # Still prune in case git has a stale record
-    git worktree prune
+    project_git worktree prune
   fi
 
   # Delete the branch if it still exists
-  if git show-ref --verify --quiet "refs/heads/${branch_name}" 2>/dev/null; then
+  if project_git show-ref --verify --quiet "refs/heads/${branch_name}" 2>/dev/null; then
     log_info "Deleting branch ${branch_name}"
-    git branch -D "$branch_name" 2>/dev/null || log_warn "Failed to delete branch ${branch_name}"
+    project_git branch -D "$branch_name" 2>/dev/null || log_warn "Failed to delete branch ${branch_name}"
   fi
 }
 
@@ -82,7 +82,7 @@ worktree_squash_merge() {
   local branch_name="ralph/${story_id}"
 
   # Verify the branch exists
-  if ! git show-ref --verify --quiet "refs/heads/${branch_name}" 2>/dev/null; then
+  if ! project_git show-ref --verify --quiet "refs/heads/${branch_name}" 2>/dev/null; then
     log_error "Branch ${branch_name} does not exist, cannot squash-merge"
     return "$EXIT_RECOVERABLE"
   fi
@@ -91,25 +91,25 @@ worktree_squash_merge() {
 
   # Save current branch to restore on failure
   local original_branch
-  original_branch="$(git rev-parse --abbrev-ref HEAD)"
+  original_branch="$(project_git rev-parse --abbrev-ref HEAD)"
 
-  if ! git checkout "$target_branch"; then
+  if ! project_git checkout "$target_branch"; then
     log_error "Failed to checkout ${target_branch}"
-    git checkout "$original_branch" 2>/dev/null || true
+    project_git checkout "$original_branch" 2>/dev/null || true
     return "$EXIT_RECOVERABLE"
   fi
 
-  if ! git merge --squash "$branch_name"; then
+  if ! project_git merge --squash "$branch_name"; then
     log_error "Squash-merge failed for ${branch_name}"
-    git merge --abort 2>/dev/null
-    git checkout "$original_branch" 2>/dev/null || true
+    project_git merge --abort 2>/dev/null
+    project_git checkout "$original_branch" 2>/dev/null || true
     return "$EXIT_RECOVERABLE"
   fi
 
-  if ! git commit -m "$commit_msg"; then
+  if ! project_git commit -m "$commit_msg"; then
     log_error "Commit failed after squash-merge"
-    git merge --abort 2>/dev/null
-    git checkout "$original_branch" 2>/dev/null || true
+    project_git merge --abort 2>/dev/null
+    project_git checkout "$original_branch" 2>/dev/null || true
     return "$EXIT_RECOVERABLE"
   fi
 
@@ -117,7 +117,7 @@ worktree_squash_merge() {
 
   # Return to original branch if different
   if [[ "$original_branch" != "$target_branch" ]]; then
-    git checkout "$original_branch" 2>/dev/null || true
+    project_git checkout "$original_branch" 2>/dev/null || true
   fi
 }
 
@@ -144,6 +144,6 @@ worktree_cleanup_all() {
     rmdir "$WORKTREE_BASE" 2>/dev/null || true
   fi
 
-  git worktree prune
+  project_git worktree prune
   log_info "Worktree cleanup complete"
 }

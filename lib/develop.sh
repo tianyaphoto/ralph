@@ -34,7 +34,7 @@ fi
 run_develop() {
   log_info "Phase 3: Development — starting"
 
-  local prd_file="$RALPH_DIR/prd.json"
+  local prd_file="$PROJECT_ROOT/prd.json"
   if [[ ! -f "$prd_file" ]]; then
     log_error "prd.json not found at $prd_file"
     return "$EXIT_RECOVERABLE"
@@ -55,21 +55,21 @@ run_develop() {
   branch_name="$(jq -r '.branchName // "ralph/auto"' "$prd_file")"
 
   local current_branch
-  current_branch="$(git rev-parse --abbrev-ref HEAD)"
+  current_branch="$(project_git rev-parse --abbrev-ref HEAD)"
   if [[ "$current_branch" != "$branch_name" ]]; then
-    if git show-ref --verify --quiet "refs/heads/$branch_name"; then
-      git checkout "$branch_name"
+    if project_git show-ref --verify --quiet "refs/heads/$branch_name"; then
+      project_git checkout "$branch_name"
     else
-      git checkout -b "$branch_name"
+      project_git checkout -b "$branch_name"
     fi
   fi
 
   # ── Determine prompt file ───────────────────────────────
   local prompt_file
   if [[ "$RALPH_TOOL" == "claude" ]]; then
-    prompt_file="$RALPH_DIR/CLAUDE.md"
+    prompt_file="$PROJECT_ROOT/CLAUDE.md"
   else
-    prompt_file="$RALPH_DIR/prompt.md"
+    prompt_file="$PROJECT_ROOT/prompt.md"
   fi
 
   # ── Render constraints into prompt ─────────────────────────
@@ -96,7 +96,7 @@ run_develop() {
     log_info "Development iteration $i/$max_iter ($remaining stories remaining)"
 
     local output
-    output="$(printf '%s\n' "$rendered_prompt" | invoke_ai 2>&1 | tee /dev/stderr)" || true
+    output="$(printf '%s\n' "$rendered_prompt" | in_project_dir invoke_ai 2>&1 | tee /dev/stderr)" || true
 
     # Check for completion signal
     if echo "$output" | grep -q "<promise>COMPLETE</promise>"; then

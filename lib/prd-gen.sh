@@ -73,19 +73,19 @@ run_prd_gen() {
   prompt="${prompt//\{\{CONSTRAINTS\}\}/${CFG_CONSTRAINTS:-No project constraints defined.}}"
 
   # ── Archive existing prd.json if present ──────────────────
-  local prd_file="${RALPH_DIR}/prd.json"
+  local prd_file="${PROJECT_ROOT}/prd.json"
   if [[ -f "$prd_file" ]]; then
     local archive_dir="${RALPH_DIR}/archive/${today}-pre-auto"
     mkdir -p "$archive_dir"
     cp "$prd_file" "$archive_dir/prd.json"
-    if [[ -f "${RALPH_DIR}/progress.txt" ]]; then
-      cp "${RALPH_DIR}/progress.txt" "$archive_dir/"
+    if [[ -f "${PROJECT_ROOT}/progress.txt" ]]; then
+      cp "${PROJECT_ROOT}/progress.txt" "$archive_dir/"
     fi
     log_info "Archived existing prd.json to ${archive_dir}"
   fi
 
   # ── Invoke AI tool ────────────────────────────────────────
-  local work_dir="${CFG_PROJECT_REPO}"
+  local work_dir="${PROJECT_ROOT}"
   log_info "Running ${RALPH_TOOL} for PRD generation in: ${work_dir}"
 
   local output
@@ -120,7 +120,7 @@ run_prd_gen() {
     echo "# Ralph Progress Log"
     echo "Started: $(date)"
     echo "---"
-  } > "${RALPH_DIR}/progress.txt"
+  } > "${PROJECT_ROOT}/progress.txt"
   log_info "Reset progress.txt for new PRD run"
 
   # ── Generate report ───────────────────────────────────────

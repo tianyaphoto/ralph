@@ -38,7 +38,7 @@ _run_check() {
     return 0
   fi
 
-  local work_dir="${CFG_PROJECT_REPO:-.}"
+  local work_dir="$PROJECT_ROOT"
   log_info "Running ${label}: ${cmd} (in ${work_dir})"
 
   if (cd "$work_dir" && bash -c "$cmd"); then
@@ -92,12 +92,14 @@ _run_ai_review() {
 _archive_review_report() {
   local report_file="review-report.md"
 
-  # Check current directory first, then RALPH_DIR
+  # Check PROJECT_ROOT first, then RALPH_DIR, then current directory
   local source=""
-  if [[ -f "$report_file" ]]; then
-    source="$report_file"
+  if [[ -f "${PROJECT_ROOT}/${report_file}" ]]; then
+    source="${PROJECT_ROOT}/${report_file}"
   elif [[ -f "${RALPH_DIR}/${report_file}" ]]; then
     source="${RALPH_DIR}/${report_file}"
+  elif [[ -f "$report_file" ]]; then
+    source="$report_file"
   fi
 
   if [[ -z "$source" ]]; then

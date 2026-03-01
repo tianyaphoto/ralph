@@ -136,10 +136,13 @@ _check_fn() {
   "
 }
 
-assert "log_info is available"      _check_fn log_info
-assert "invoke_ai is available"    _check_fn invoke_ai
-assert "load_config is available"   _check_fn load_config
-assert "load_constraints is available" _check_fn load_constraints
+assert "log_info is available"              _check_fn log_info
+assert "invoke_ai is available"            _check_fn invoke_ai
+assert "resolve_project_root is available" _check_fn resolve_project_root
+assert "project_git is available"          _check_fn project_git
+assert "in_project_dir is available"       _check_fn in_project_dir
+assert "load_config is available"          _check_fn load_config
+assert "load_constraints is available"     _check_fn load_constraints
 assert "write_report is available"  _check_fn write_report
 assert "worktree_create is available" _check_fn worktree_create
 assert "run_research is available"  _check_fn run_research
@@ -188,8 +191,44 @@ assert_fail "parse_interval '' returns error" \
 
 echo ""
 
-# ── 5. Config validation ─────────────────────────────────────
-echo "5. Config validation"
+# ── 5. resolve_project_root tests ────────────────────────────
+echo "5. resolve_project_root tests"
+echo "---"
+
+_resolve_root() {
+  local repo_val="$1"
+  bash -c "
+    export RALPH_DIR='$RALPH_DIR'
+    source '$RALPH_DIR/lib/utils.sh'
+    CFG_PROJECT_REPO='$repo_val'
+    resolve_project_root
+    echo \"\$PROJECT_ROOT\"
+  " 2>/dev/null
+}
+
+resolve_dot="$(_resolve_root ".")"
+assert_eq "resolve_project_root '.' == RALPH_DIR" "$RALPH_DIR" "$resolve_dot"
+
+expected_parent="$(cd "$RALPH_DIR/.." && pwd)"
+resolve_dotdot="$(_resolve_root "..")"
+assert_eq "resolve_project_root '..' == parent of RALPH_DIR" "$expected_parent" "$resolve_dotdot"
+
+expected_tmp="$(cd /tmp && pwd)"
+resolve_abs="$(_resolve_root "/tmp")"
+assert_eq "resolve_project_root '/tmp' == /tmp (resolved)" "$expected_tmp" "$resolve_abs"
+
+assert_fail "resolve_project_root fails for nonexistent relative path" \
+  bash -c "
+    export RALPH_DIR='$RALPH_DIR'
+    source '$RALPH_DIR/lib/utils.sh'
+    CFG_PROJECT_REPO='nonexistent/subpath'
+    resolve_project_root
+  "
+
+echo ""
+
+# ── 6. Config validation ─────────────────────────────────────
+echo "6. Config validation"
 echo "---"
 
 assert "config/ralph-config.yaml.example is valid YAML" \
@@ -197,8 +236,8 @@ assert "config/ralph-config.yaml.example is valid YAML" \
 
 echo ""
 
-# ── 5b. Constraints loading ──────────────────────────────────
-echo "5b. Constraints loading"
+# ── 6b. Constraints loading ──────────────────────────────────
+echo "6b. Constraints loading"
 echo "---"
 
 # Test: load_constraints with no file returns empty CFG_CONSTRAINTS
@@ -230,12 +269,38 @@ rm -rf "$_test_constraints_dir"
 
 echo ""
 
-# ── 6. CLI test ──────────────────────────────────────────────
-echo "6. CLI test"
+# ── 7. CLI test ──────────────────────────────────────────────
+echo "7. CLI test"
 echo "---"
 
 assert "./ralph.sh --help exits 0" \
   bash "$RALPH_DIR/ralph.sh" --help
+
+echo ""
+
+# ── 8. --init integration test ──────────────────────────────
+echo "8. --init integration test"
+echo "---"
+
+_test_init_dir="$(mktemp -d)"
+
+assert "--init creates .ralph/ directory" \
+  bash -c "bash '$RALPH_DIR/ralph.sh' --init '$_test_init_dir' >/dev/null 2>&1 && [[ -d '$_test_init_dir/.ralph' ]]"
+
+assert "--init creates ralph.sh inside .ralph/" \
+  bash -c "[[ -x '$_test_init_dir/.ralph/ralph.sh' ]]"
+
+assert "--init creates ralph-config.yaml with repo: .." \
+  bash -c "grep -q 'repo:.*\"\.\.\"' '$_test_init_dir/.ralph/ralph-config.yaml'"
+
+assert "--init creates CLAUDE.md at project root" \
+  bash -c "[[ -f '$_test_init_dir/CLAUDE.md' ]]"
+
+assert "--init updates .gitignore" \
+  bash -c "grep -q '.ralph/.ralph-state/' '$_test_init_dir/.gitignore'"
+
+# Cleanup
+rm -rf "$_test_init_dir"
 
 echo ""
 

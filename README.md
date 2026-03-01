@@ -30,14 +30,44 @@ Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
 ## Quick Start
 
-### 1. Clone Ralph into your project
+### Option A: Install as Subdirectory (Recommended)
+
+Install Ralph into an existing project as `.ralph/`:
+
+```bash
+# From a cloned copy of Ralph (or wherever ralph.sh lives)
+./ralph.sh --init /path/to/my-project
+
+# Or from the target project directory
+/path/to/ralph/ralph.sh --init .
+```
+
+This creates:
+
+```
+my-project/
+  .ralph/                # Ralph internals (ralph.sh, lib/, prompts/, config/)
+  CLAUDE.md              # AI agent instructions (project root)
+  prd.json               # Generated at project root (git-ignored)
+  progress.txt           # Generated at project root (git-ignored)
+```
+
+Then edit `.ralph/ralph-config.yaml` and run:
+
+```bash
+.ralph/ralph.sh --auto
+```
+
+### Option B: Standalone Clone
+
+Clone Ralph as its own project:
 
 ```bash
 git clone https://github.com/snarktank/ralph.git
 cd ralph
 ```
 
-### 2. Create your config
+### Create your config
 
 ```bash
 cp config/ralph-config.yaml.example ralph-config.yaml
@@ -105,6 +135,7 @@ Modes:
   --daemon            Continuous mode (runs cycles on an interval)
   --legacy            Original dev-only loop (backwards compat)
   --phase PHASE       Run a single phase (research|prd-gen|develop|review|release)
+  --init [DIR]        Install Ralph as .ralph/ subdirectory in DIR (default: current dir)
 
 Options:
   --tool amp|claude   Override AI tool (default: from config)
@@ -213,6 +244,8 @@ Automates the release workflow (each step gated by config):
 
 ## Project Structure
 
+### Standalone layout
+
 ```
 ralph/
   ralph.sh                      # Main orchestrator + CLI
@@ -238,6 +271,23 @@ ralph/
   skills/                       # PRD and Ralph skills for Amp/Claude
   CLAUDE.md                     # Agent instructions for development phase
   prompt.md                     # Amp prompt template
+```
+
+### Subdirectory layout (after `--init`)
+
+```
+my-project/                     # $PROJECT_ROOT
+  .ralph/                       # $RALPH_DIR
+    ralph.sh                    # Main orchestrator + CLI
+    ralph-config.yaml           # Project config (repo: "..")
+    lib/                        # All library modules
+    prompts/                    # Prompt templates
+    config/                     # Config example
+    .ralph-state/               # Internal state (git-ignored)
+    reports/                    # Auto-generated reports (git-ignored)
+  CLAUDE.md                     # AI agent instructions (project root)
+  prd.json                      # Generated at project root
+  progress.txt                  # Generated at project root
 ```
 
 ## Configuration Reference

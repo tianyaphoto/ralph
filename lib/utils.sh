@@ -14,6 +14,8 @@ readonly EXIT_FATAL=2
 # RALPH_DIR must be set by the sourcing script (ralph.sh sets it).
 # Fallback: derive from this file's location (lib/ -> parent).
 : "${RALPH_DIR:="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
+: "${PROJECT_ROOT:="$RALPH_DIR"}"
+export PROJECT_ROOT
 STATE_DIR="$RALPH_DIR/.ralph-state"
 REPORTS_BASE="$RALPH_DIR/reports"
 
@@ -153,6 +155,49 @@ check_all_dependencies() {
   fi
   return "$missing"
 }
+
+# ── Project root resolution ────────────────────────────────
+# resolve_project_root — Convert CFG_PROJECT_REPO to an absolute
+# path and export it as PROJECT_ROOT.
+#
+# Mapping:
+#   "."       → $RALPH_DIR          (standalone mode)
+#   ".."      → parent of $RALPH_DIR (subdirectory mode)
+#   /abs/path → used as-is
+#   rel/path  → resolved relative to $RALPH_DIR
+resolve_project_root() {
+  local repo="${CFG_PROJECT_REPO:-.}"
+
+  case "$repo" in
+    .)   PROJECT_ROOT="$RALPH_DIR" ;;
+    ..)  PROJECT_ROOT="$(cd "$RALPH_DIR/.." && pwd)" || {
+           log_error "resolve_project_root: cannot resolve parent of RALPH_DIR"
+           return "$EXIT_FATAL"
+         } ;;
+    /*)  PROJECT_ROOT="$repo" ;;
+    *)   PROJECT_ROOT="$(cd "$RALPH_DIR/$repo" && pwd)" || {
+           log_error "resolve_project_root: cannot resolve '$RALPH_DIR/$repo'"
+           return "$EXIT_FATAL"
+         } ;;
+  esac
+
+  if [[ ! -d "$PROJECT_ROOT" ]]; then
+    log_error "resolve_project_root: directory does not exist: $PROJECT_ROOT"
+    return "$EXIT_FATAL"
+  fi
+
+  export PROJECT_ROOT
+  log_info "PROJECT_ROOT resolved to: $PROJECT_ROOT"
+}
+
+# ── Project-scoped command helpers ────────────────────────
+# project_git — Run git in $PROJECT_ROOT.
+# Usage: project_git rev-parse --abbrev-ref HEAD
+project_git() { git -C "$PROJECT_ROOT" "$@"; }
+
+# in_project_dir — Run a command with $PROJECT_ROOT as cwd.
+# Usage: in_project_dir gh pr view --json number,url
+in_project_dir() { (cd "$PROJECT_ROOT" && "$@"); }
 
 # ── AI tool invocation ──────────────────────────────────────
 # invoke_ai — Run the configured AI tool.

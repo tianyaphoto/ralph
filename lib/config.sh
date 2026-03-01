@@ -58,6 +58,30 @@ load_config() {
   # ── Derived: set RALPH_TOOL for the rest of the system ──
   export RALPH_TOOL="$CFG_DEV_TOOL"
 
+  # ── Load project constraints ────────────────────────────────
+  load_constraints
+
   log_info "Config loaded: project=$CFG_PROJECT_NAME tool=$RALPH_TOOL"
+  return 0
+}
+
+# ── Constraints loader ──────────────────────────────────────
+# Reads {PROJECT_REPO}/constraints.md if it exists and exports
+# CFG_CONSTRAINTS with the file contents.  Returns empty string
+# if the file does not exist.  Safe to call before or after
+# load_config — uses CFG_PROJECT_REPO if set, falls back to ".".
+load_constraints() {
+  local repo="${CFG_PROJECT_REPO:-.}"
+  local constraints_file="$repo/constraints.md"
+
+  if [[ -f "$constraints_file" ]]; then
+    export CFG_CONSTRAINTS
+    CFG_CONSTRAINTS="$(cat "$constraints_file")"
+    log_info "Constraints loaded from: $constraints_file"
+  else
+    export CFG_CONSTRAINTS=""
+    log_info "No constraints file found at: $constraints_file (proceeding without constraints)"
+  fi
+
   return 0
 }

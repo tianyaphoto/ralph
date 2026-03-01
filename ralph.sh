@@ -95,6 +95,8 @@ while [[ $# -gt 0 ]]; do
         INIT_TARGET="."
         shift
       fi
+      INIT_TARGET_DIR="$INIT_TARGET"
+      export INIT_TARGET_DIR
       ;;
     --phase)
       MODE="phase"
@@ -318,140 +320,6 @@ run_full_cycle() {
   return "$overall"
 }
 
-# ── run_init ────────────────────────────────────────────────
-# Installs Ralph as a .ralph/ subdirectory inside a target project.
-# Creates the directory structure, copies files, generates config,
-# and prints next-steps instructions.
-#
-# Usage: run_init "/path/to/target-project"
-run_init() {
-  local target_dir="$1"
-
-  # Resolve to absolute path
-  target_dir="$(cd "$target_dir" 2>/dev/null && pwd)" || {
-    echo "Error: Target directory '$1' does not exist." >&2
-    exit 1
-  }
-
-  local ralph_dest="$target_dir/.ralph"
-
-  echo "Installing Ralph into: $ralph_dest"
-
-  # ── Step 1: Create .ralph/ directory structure ────────────
-  if [[ -d "$ralph_dest" ]]; then
-    echo "Warning: $ralph_dest already exists. Updating files..."
-  fi
-
-  mkdir -p "$ralph_dest/lib" "$ralph_dest/prompts" "$ralph_dest/config" \
-           "$ralph_dest/.ralph-state" "$ralph_dest/reports"
-
-  # ── Step 2: Copy Ralph core files ─────────────────────────
-  cp "$RALPH_DIR/ralph.sh" "$ralph_dest/ralph.sh"
-  chmod +x "$ralph_dest/ralph.sh"
-
-  # Copy lib/
-  cp "$RALPH_DIR/lib/"*.sh "$ralph_dest/lib/"
-
-  # Copy prompts/
-  cp "$RALPH_DIR/prompts/"*.md "$ralph_dest/prompts/"
-
-  # Copy config example
-  cp "$RALPH_DIR/config/ralph-config.yaml.example" "$ralph_dest/config/"
-
-  echo "  Copied ralph.sh, lib/, prompts/, config/"
-
-  # ── Step 3: Create ralph-config.yaml with project.repo: ".."
-  local config_dest="$ralph_dest/ralph-config.yaml"
-  if [[ ! -f "$config_dest" ]]; then
-    local project_name
-    project_name="$(basename "$target_dir")"
-    # Sanitize project name for safe YAML embedding (remove quotes/special chars)
-    project_name="${project_name//\"/}"
-    project_name="${project_name//\'/}"
-    cat > "$config_dest" <<YAML
-project:
-  name: "${project_name}"
-  description: ""
-  repo: ".."
-  build_command: ""
-  test_command: ""
-  lint_command: ""
-
-research:
-  competitors: []
-  dimensions: []
-  auto_discover: true
-
-schedule:
-  interval: "30m"
-  max_stories_per_cycle: 3
-
-development:
-  tool: claude
-  max_iterations: 10
-  tdd: true
-
-release:
-  auto_pr: true
-  auto_merge: false
-  auto_tag: false
-  auto_release: false
-YAML
-    echo "  Created ralph-config.yaml (project.repo: \"..\")"
-  else
-    echo "  ralph-config.yaml already exists, skipping"
-  fi
-
-  # ── Step 4: Copy CLAUDE.md and prompt.md to project root ──
-  _copy_if_missing() {
-    local filename="$1"
-    if [[ ! -f "$target_dir/$filename" ]]; then
-      if [[ -f "$RALPH_DIR/$filename" ]]; then
-        cp "$RALPH_DIR/$filename" "$target_dir/$filename"
-        echo "  Copied $filename to project root"
-      fi
-    else
-      echo "  $filename already exists at project root, skipping"
-    fi
-  }
-  _copy_if_missing "CLAUDE.md"
-  _copy_if_missing "prompt.md"
-  unset -f _copy_if_missing
-
-  # ── Step 5: Update .gitignore ─────────────────────────────
-  local gitignore="$target_dir/.gitignore"
-  local entries=(
-    ".ralph/.ralph-state/"
-    ".ralph/reports/"
-    "prd.json"
-    "progress.txt"
-  )
-
-  for entry in "${entries[@]}"; do
-    if [[ -f "$gitignore" ]] && grep -qxF "$entry" "$gitignore" 2>/dev/null; then
-      continue
-    fi
-    echo "$entry" >> "$gitignore"
-  done
-  echo "  Updated .gitignore"
-
-  # ── Step 6: Print next steps ──────────────────────────────
-  echo ""
-  echo "Done! Ralph installed at: $ralph_dest"
-  echo ""
-  echo "Next steps:"
-  echo "  1. Edit .ralph/ralph-config.yaml for your project"
-  echo "  2. Edit CLAUDE.md with project-specific instructions"
-  echo "  3. Run:  .ralph/ralph.sh --auto"
-  echo ""
-  echo "Directory layout:"
-  echo "  $target_dir/"
-  echo "    .ralph/              # Ralph internal (ralph.sh, lib/, prompts/)"
-  echo "    CLAUDE.md            # AI agent instructions (project root)"
-  echo "    prd.json             # Generated at project root"
-  echo "    progress.txt         # Generated at project root"
-}
-
 # ── run_legacy ──────────────────────────────────────────────
 # Preserves the EXACT behavior of the original ralph.sh:
 # branch archival, iteration loop, completion detection.
@@ -617,7 +485,7 @@ case "$MODE" in
     ;;
 
   init)
-    run_init "${INIT_TARGET_DIR:-$INIT_TARGET}"
+    run_init
     ;;
 
   legacy)

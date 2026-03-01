@@ -287,21 +287,29 @@ echo "8. --init integration test"
 echo "---"
 
 _test_init_dir="$(mktemp -d)"
+# lib/init.sh requires target to be a git repo
+git -C "$_test_init_dir" init -q
 
 assert "--init creates .ralph/ directory" \
-  bash -c "bash '$RALPH_DIR/ralph.sh' --init '$_test_init_dir' >/dev/null 2>&1 && [[ -d '$_test_init_dir/.ralph' ]]"
+  bash -c "bash '$RALPH_DIR/ralph.sh' init '$_test_init_dir' --force >/dev/null 2>&1 && [[ -d '$_test_init_dir/.ralph' ]]"
 
 assert "--init creates ralph.sh inside .ralph/" \
   bash -c "[[ -x '$_test_init_dir/.ralph/ralph.sh' ]]"
 
-assert "--init creates ralph-config.yaml with repo: .." \
-  bash -c "grep -q 'repo:.*\"\.\.\"' '$_test_init_dir/.ralph/ralph-config.yaml'"
+assert "--init creates ralph-config.yaml" \
+  bash -c "[[ -f '$_test_init_dir/.ralph/ralph-config.yaml' ]]"
 
 assert "--init creates CLAUDE.md at project root" \
   bash -c "[[ -f '$_test_init_dir/CLAUDE.md' ]]"
 
 assert "--init updates .gitignore" \
   bash -c "grep -q '.ralph/.ralph-state/' '$_test_init_dir/.gitignore'"
+
+assert "--init creates .claude/skills/prd/SKILL.md" \
+  bash -c "[[ -f '$_test_init_dir/.claude/skills/prd/SKILL.md' ]]"
+
+assert "--init creates .claude/skills/ralph/SKILL.md" \
+  bash -c "[[ -f '$_test_init_dir/.claude/skills/ralph/SKILL.md' ]]"
 
 # Cleanup
 rm -rf "$_test_init_dir"

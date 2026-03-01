@@ -617,7 +617,7 @@ case "$MODE" in
     ;;
 
   init)
-    run_init "$INIT_TARGET"
+    run_init "${INIT_TARGET_DIR:-$INIT_TARGET}"
     ;;
 
   legacy)
@@ -629,10 +629,6 @@ case "$MODE" in
     CURRENT_CYCLE="$(increment_cycle_count)"
     export CURRENT_CYCLE
     run_phase "$PHASE_NAME"
-    ;;
-
-  init)
-    run_init
     ;;
 
   *)

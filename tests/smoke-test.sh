@@ -145,6 +145,7 @@ assert "load_config is available"          _check_fn load_config
 assert "load_constraints is available"     _check_fn load_constraints
 assert "write_report is available"  _check_fn write_report
 assert "worktree_create is available" _check_fn worktree_create
+assert "_build_requirements_text is available" _check_fn _build_requirements_text
 assert "run_research is available"  _check_fn run_research
 assert "run_prd_gen is available"   _check_fn run_prd_gen
 assert "run_develop is available"   _check_fn run_develop
@@ -233,6 +234,9 @@ echo "---"
 
 assert "config/ralph-config.yaml.example is valid YAML" \
   yq '.' "$RALPH_DIR/config/ralph-config.yaml.example"
+
+assert "config/requirements.yaml.example is valid YAML" \
+  yq '.' "$RALPH_DIR/config/requirements.yaml.example"
 
 echo ""
 

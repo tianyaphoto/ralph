@@ -34,6 +34,7 @@ source "$RALPH_DIR/lib/prd-gen.sh"
 source "$RALPH_DIR/lib/develop.sh"
 source "$RALPH_DIR/lib/review.sh"
 source "$RALPH_DIR/lib/release.sh"
+source "$RALPH_DIR/lib/init.sh"
 
 # ── Usage ───────────────────────────────────────────────────
 usage() {
@@ -47,7 +48,7 @@ Modes:
   --daemon            Continuous mode (while true + sleep)
   --legacy            Original dev-only loop (backwards compat with current behavior)
   --phase PHASE       Run single phase (research|prd-gen|develop|review|release)
-  --init [DIR]        Install Ralph as .ralph/ subdirectory in DIR (default: current dir)
+  init <dir>          Initialize Ralph in a target project
 
 Options:
   --tool amp|claude   Override AI tool
@@ -160,6 +161,29 @@ while [[ $# -gt 0 ]]; do
     -h|--help)
       usage
       exit 0
+      ;;
+    init)
+      MODE="init"
+      INIT_TARGET_DIR="${2:-}"
+      if [[ -z "$INIT_TARGET_DIR" ]]; then
+        echo "Error: init requires a target directory" >&2
+        echo "Usage: ./ralph.sh init <target-dir> [--tool amp|claude] [--name project] [--force]" >&2
+        exit 1
+      fi
+      shift 2
+      # Parse init-specific options
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --tool)   INIT_TOOL="${2:-}"; shift 2 ;;
+          --tool=*) INIT_TOOL="${1#*=}"; shift ;;
+          --name)   INIT_PROJECT_NAME="${2:-}"; shift 2 ;;
+          --name=*) INIT_PROJECT_NAME="${1#*=}"; shift ;;
+          --force)  INIT_FORCE="true"; shift ;;
+          *) echo "Error: Unknown init option '$1'" >&2; exit 1 ;;
+        esac
+      done
+      export INIT_TARGET_DIR INIT_TOOL INIT_PROJECT_NAME INIT_FORCE
+      break
       ;;
     *)
       # Bare number → legacy mode with max iterations (backwards compat)
@@ -587,6 +611,10 @@ case "$MODE" in
     CURRENT_CYCLE="$(increment_cycle_count)"
     export CURRENT_CYCLE
     run_phase "$PHASE_NAME"
+    ;;
+
+  init)
+    run_init
     ;;
 
   *)

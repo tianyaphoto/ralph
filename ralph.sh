@@ -174,9 +174,27 @@ while [[ $# -gt 0 ]]; do
       # Parse init-specific options
       while [[ $# -gt 0 ]]; do
         case "$1" in
-          --tool)   INIT_TOOL="${2:-}"; shift 2 ;;
-          --tool=*) INIT_TOOL="${1#*=}"; shift ;;
-          --name)   INIT_PROJECT_NAME="${2:-}"; shift 2 ;;
+          --tool)
+            INIT_TOOL="${2:-}"
+            if [[ -z "$INIT_TOOL" ]]; then
+              echo "Error: --tool requires a value (amp|claude)" >&2; exit 1
+            fi
+            if [[ "$INIT_TOOL" != "amp" && "$INIT_TOOL" != "claude" ]]; then
+              echo "Error: --tool must be 'amp' or 'claude'" >&2; exit 1
+            fi
+            shift 2 ;;
+          --tool=*)
+            INIT_TOOL="${1#*=}"
+            if [[ "$INIT_TOOL" != "amp" && "$INIT_TOOL" != "claude" ]]; then
+              echo "Error: --tool must be 'amp' or 'claude'" >&2; exit 1
+            fi
+            shift ;;
+          --name)
+            INIT_PROJECT_NAME="${2:-}"
+            if [[ -z "$INIT_PROJECT_NAME" ]]; then
+              echo "Error: --name requires a value" >&2; exit 1
+            fi
+            shift 2 ;;
           --name=*) INIT_PROJECT_NAME="${1#*=}"; shift ;;
           --force)  INIT_FORCE="true"; shift ;;
           *) echo "Error: Unknown init option '$1'" >&2; exit 1 ;;

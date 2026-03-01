@@ -87,11 +87,11 @@ run_init() {
 
   # config/ with populated ralph-config.yaml
   mkdir -p "$ralph_dest/config"
-  sed "s/my-app/$project_name/g" "$RALPH_DIR/config/ralph-config.yaml.example" \
+  sed "s|my-app|$project_name|g" "$RALPH_DIR/config/ralph-config.yaml.example" \
     > "$ralph_dest/config/ralph-config.yaml.example"
 
   # Generate a starter ralph-config.yaml with project name filled in
-  sed "s/my-app/$project_name/g" "$RALPH_DIR/config/ralph-config.yaml.example" \
+  sed "s|my-app|$project_name|g" "$RALPH_DIR/config/ralph-config.yaml.example" \
     > "$ralph_dest/ralph-config.yaml"
 
   echo "  Copied runtime files to .ralph/"
@@ -141,11 +141,7 @@ run_init() {
       echo "Use \`/prd\` to generate a PRD, then \`/ralph\` to convert it to \`prd.json\`."
     } >> "$claude_md"
 
-    if [[ -f "$claude_md" ]]; then
-      echo "  Appended Ralph section to existing CLAUDE.md"
-    else
-      echo "  Created CLAUDE.md with Ralph section"
-    fi
+    echo "  Updated CLAUDE.md with Ralph section"
   fi
 
   # ── Update .gitignore ───────────────────────────────────
@@ -174,7 +170,7 @@ run_init() {
   echo "Ralph initialized successfully!"
   echo ""
   echo "Quick start:"
-  echo "  1. Create a PRD:        cd $target_dir && claude  # then use /prd"
+  echo "  1. Create a PRD:        cd \"$target_dir\" && claude  # then use /prd"
   echo "  2. Convert to prd.json: use /ralph in Claude Code"
   echo "  3. Copy prd.json to:    .ralph/prd.json"
   echo "  4. Run Ralph:           .ralph/ralph.sh"

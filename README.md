@@ -376,6 +376,35 @@ Then run the development loop:
 ./ralph.sh --legacy --tool claude
 ```
 
+## Initialize Ralph in Another Project
+
+Bootstrap any existing git project with Ralph's autonomous agent workflow:
+
+```bash
+# Basic usage — auto-detects project name from directory
+./ralph.sh init /path/to/your-project
+
+# Specify tool and project name
+./ralph.sh init /path/to/your-project --tool claude --name my-app
+
+# Overwrite existing Ralph setup
+./ralph.sh init /path/to/your-project --force
+```
+
+This creates:
+- `.ralph/` — Self-contained runtime (ralph.sh, lib/, prompts/, config/)
+- `.claude/skills/prd/` — PRD generator skill (`/prd`)
+- `.claude/skills/ralph/` — PRD-to-JSON converter skill (`/ralph`)
+- Appends Ralph agent instructions to your `CLAUDE.md`
+- Updates `.gitignore` with Ralph runtime entries
+
+### Quick Start After Init
+
+1. Open your project in Claude Code
+2. Use `/prd` to write a Product Requirements Document
+3. Use `/ralph` to convert it to `.ralph/prd.json`
+4. Run `.ralph/ralph.sh` to start the autonomous agent loop
+
 ## Reports
 
 Each phase generates reports to `reports/YYYY-MM-DD/`:

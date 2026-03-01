@@ -6,6 +6,23 @@ You are performing competitive research for **{{PROJECT_NAME}}**.
 
 **Description:** {{PROJECT_DESC}}
 
+## User Requirements (TOP PRIORITY)
+
+The following requirements were specified by the project owner. These are
+**highest priority** and MUST appear first in `gaps.json`.
+
+{{REQUIREMENTS}}
+
+### Handling User Requirements in Output
+
+- Every user requirement MUST appear in `gaps.json` — never omit one.
+- User requirements always rank **above** research-discovered gaps in the output ordering.
+- If a user requirement overlaps with a competitive research finding, **merge** them
+  into one entry with `"source": "user+research"` and combine the rationale.
+- User-only items (no competitive overlap) get `"source": "user"`.
+- Research-only items get `"source": "research"`.
+- User requirement priority values are preserved as-is (never downgraded by research).
+
 ## Objectives
 
 1. Analyze each competitor listed below across the specified dimensions.
@@ -71,9 +88,9 @@ A human-readable markdown report with the following structure:
 (Repeat for each dimension)
 
 ## Gap Analysis
-| Gap | Priority | Competitors With Feature | Effort | Rationale |
-|-----|----------|--------------------------|--------|-----------|
-| ... | ...      | ...                      | ...    | ...       |
+| Gap | Source | Priority | Competitors With Feature | Effort | Rationale |
+|-----|--------|----------|--------------------------|--------|-----------|
+| ... | ...    | ...      | ...                      | ...    | ...       |
 
 ## Recommendations
 (Prioritised list of actionable next steps)
@@ -88,6 +105,7 @@ A machine-readable JSON file containing an array of gap objects:
   {
     "gap": "Short description of the missing capability",
     "priority": "high",
+    "source": "user",
     "competitors": ["competitor-one", "competitor-two"],
     "effort": "medium",
     "rationale": "Why this gap matters and how competitors address it"
@@ -101,6 +119,7 @@ Field definitions:
 - **competitors** (array of strings): Names of competitors that have this capability.
 - **effort** (string): Estimated implementation effort — one of `"small"`, `"medium"`, or `"large"`.
 - **rationale** (string): Explanation of why this gap is important and how competitors solve it.
+- **source** (string): One of `"user"`, `"research"`, or `"user+research"`. Indicates whether the gap came from user requirements, competitive research, or both.
 
 ## Important
 
